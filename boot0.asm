@@ -13,12 +13,12 @@
 
 ; BIOS interrupts
 BIOS_INT_VIDEO      equ 0x10
+BIOS_INT_DRIVE      equ 0x13
 
 ; define usefull characters
 CHAR_NULL           equ 0x0
 CHAR_LF             equ 0xa
 CHAR_CR             equ 0xd
-
 
 ; Code segment (CODE_SEGMENT:CODE_OFFSET) = (0000:7c00)
 ; The code offset is provided by the absolute long jump
@@ -67,64 +67,68 @@ next_line_as_code_segment_offset:
     ; enable interrupts
     sti
 
-    mov        cx, 2*2               ; the following functions have 2 arguments of a word size (2 bytes)
-
-    push       hellomsg
-    push       0x07
+    mov        si, hellomsg
     call       prints
-    add        sp, cx
 
-    push       canonicalizationmsg
-    push       0x03
+    mov        si, canonicalizationmsg
     call       prints
-    add        sp, cx
 
-    push       segmentsmsg
-    push       0x30
+    mov        si, segmentsmsg
     call       prints
-    add        sp, cx
 
-    push       stackmsg
-    push       0x55
+    mov        si, stackmsg
     call       prints
-    add        sp, cx
 
-    call halt                        ; halt bootloader here for now before going further
+    ; Reset disk drive
+    ; The drive number is contained in %dl (initialized by the BIOS),
+    ; do not touch it, just give it in argument to the drive's reset
+    ; procedure.
+.reset_drive:
+    mov        cl, 5                        ; maximum number of attempts if recoverable failure = 5
+    call       reset_drive_system           ; drive number in %dl, not modified since stage 0 began
+    cmp        ah, 0x00
+    je         .read_boot1
+    ; an error occured, it is impossible to continue booting
+    mov        si, msg_reset_drive_failure
+    call       prints
+    jmp        .fatal_error
 
+    ; Read boot1 from the hard disk drive
+.read_boot1:
+    mov        si, msg_reset_drive_success
+    call       prints
 
+.fatal_error:
+    call halt                               ; halt bootloader execution
 
 ;-----------
 ;-- UTILS --
 ;-----------
 
 ;============================================================================;
-; void prints(char* s, uint8_t color)
+; void prints(char* s)
 ; \brief Print a string to the active page.
-; \param[in] s      pointer on the string to print
-; \param[in] color  color to use (only the lower byte is considered)
+; \param[in] s : reg %si, pointer on the string to print
 prints:
     ; BIOS interrupt: 0x10
     ; service:        0x0e
     ; effect:         write teletype to active page
     ;
     ; Internal registers :
-    ; %AL : character to be written
-    ; %BL : foreground color in graphic mode
+    ; %al : character to be written
+    ; %bl : foreground color in graphic mode
+    ; %si : current char's address
 
     ; save context
-    push       bp
-    mov        bp, sp
     push       ax
     push       bx
-
-    mov        bl, [ss:bp+4]         ; get the color
-    mov        si, [ss:bp+6]         ; get the string address
 
 .prints_fetch_char:
     lodsb                            ; load string at %ds:%si into %al and increment %si
     cmp        al, CHAR_NULL         ; check if the end of the string is reached (? c == '\0')
     jz         .prints_end
-    mov        ah, 0x0E              ; call BIOS service (0x0e, int 0x10)
+    mov        bl, 0x07              ; foreground color
+    mov        ah, 0x0E              ; call BIOS service (0x0e, BIOS_INT_VIDEO)
     int        BIOS_INT_VIDEO
     jmp        .prints_fetch_char
 
@@ -132,7 +136,6 @@ prints:
     ; restore context
     pop        bx
     pop        ax
-    pop        bp
     ret
 
 
@@ -142,17 +145,38 @@ prints:
 ; \note  The only way out of this is to manually reboot.
 halt:
     hlt                              ; halt the system
-    jmp        halt
+    jmp        halt                  ; just in case an interrupt is risen to loop indefinitely
 
 
-    ; some NOP stuffing
-    times 20            db 0x90
+;============================================================================;
+; int reset_drive_system(uint8_t drive_nb, uint8_t max_nb_attempts)
+; \brief Reset the drive system given in argument.
+; \param[in] drive_nb :         reg %dl, drive number
+; \param[in] max_nb_attempts :  reg %cl, maximum number of attempts if failure before abandonment
+; \return 0x00 if successfull
+;         BIOS's status of operation otherwise
+; \note returned value is stored in %ah
+reset_drive_system:
+    push       cx
+.reset_drive:
+    mov        ah, 0x00              ; call BIOS service (0x00, BIOS_INT_DRIVE)
+    int        BIOS_INT_DRIVE
+    jnc        .exit                 ; if an error occurs, CF(carry flag) is set to 1
+    cmp        cx, 0                 ; check if we still can attempt a new reset
+    je         .exit
+    dec        cx
+    jmp        .reset_drive
+
+.exit:
+    pop        cx
+    ret
 
 
 ;============================================================================;
 ;================================== DATA ====================================;
 ;============================================================================;
-    hellomsg            db 'Executing bootloader v0.1', CHAR_CR, CHAR_LF, CHAR_NULL
+    hellomsg            db 'Bootloader v0.1, stage 0', CHAR_CR, CHAR_LF, CHAR_NULL
+
     canonicalizationmsg db 'Canonicalization (%cs:%ip) at 0000:7c00 [OK]', CHAR_CR, CHAR_LF, CHAR_NULL
     segmentsmsg         db 'Data segment %ds at 0000:7c00 [OK]', CHAR_CR, CHAR_LF, \
                            'Extended data segment %es at 0000:7c00 [OK]', CHAR_CR, CHAR_LF, \
@@ -162,6 +186,9 @@ halt:
                            'Base pointer %bp at 8000:1000', CHAR_CR, CHAR_LF, \
                            'Stack size: 1kB', CHAR_CR, CHAR_LF, \
                            CHAR_NULL
+
+    msg_reset_drive_success db 'Reset drive controller [OK]', CHAR_CR, CHAR_LF, CHAR_NULL
+    msg_reset_drive_failure db 'Reset drive controller: fatal failure, please reboot', CHAR_NULL
 
     ; NULL character stuffing
     times 510-($-$$)    db CHAR_NULL
