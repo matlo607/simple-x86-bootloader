@@ -67,21 +67,27 @@ next_line_as_code_segment_offset:
     ; enable interrupts
     sti
 
+    mov        cx, 2*2               ; the following functions have 2 arguments of a word size (2 bytes)
+
     push       hellomsg
     push       0x07
     call       prints
+    add        sp, cx
 
     push       canonicalizationmsg
     push       0x03
     call       prints
+    add        sp, cx
 
     push       segmentsmsg
     push       0x30
     call       prints
+    add        sp, cx
 
     push       stackmsg
     push       0x55
     call       prints
+    add        sp, cx
 
     call halt                        ; halt bootloader here for now before going further
 
@@ -91,6 +97,7 @@ next_line_as_code_segment_offset:
 ;-- UTILS --
 ;-----------
 
+;============================================================================;
 ; void prints(char* s, uint8_t color)
 ; \brief Print a string to the active page.
 ; \param[in] s      pointer on the string to print
@@ -129,6 +136,7 @@ prints:
     ret
 
 
+;============================================================================;
 ; void halt(void)
 ; \brief Sends the processor into a permanent halted status.
 ; \note  The only way out of this is to manually reboot.
