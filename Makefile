@@ -4,26 +4,37 @@ NASMFLAGS=-O0 -f bin
 QEMU=qemu-system-i386
 QEMUFLAGS=-s -boot a
 
+SRC_ASM= $(wildcard *.asm)
+BIN= $(SRC_ASM:.asm=.bin)
+
 IMG=bootloader.img
-BINNAME=boot0
 
-all:  $(BINNAME).bin
+all:  $(BIN)
 
 
-$(BINNAME).bin: $(BINNAME).asm
-	$(ASM) $(NASMFLAGS) -o $@ -l $(BINNAME).lst $< 
+%.bin: %.asm
+	$(ASM) $(NASMFLAGS) -o $@ -l $*.lst $<
 
-$(IMG): $(BINNAME).bin
-	cat $< /dev/zero | dd of=$@ bs=512 count=2880
+$(IMG): $(BIN)
+	cat $^ /dev/zero | dd of=$@ bs=512 count=2880
 
 clean:
 	-rm -f *.o *.lst *.bin $(IMG)
 
 
 
+# Inspection tools
+disassemble: $(BINARY)
+	objdump -D -b binary -mi386 -Maddr16,data16 $< | less
+
+hexdump: $(BINARY)
+	xxd -c 1 $< | less
+
+# Simulation
 run-qemu: $(IMG)
 	$(QEMU) $(QEMUFLAGS) -hda $<
 
+# Debug tools
 run-qemu-with-gdb: $(IMG)
 	$(QEMU) -S $(QEMUFLAGS) -hda $<
 
@@ -33,5 +44,3 @@ run-gdb:
 		-ex 'break *0x7c00' \
 		-ex 'continue'
 
-disassemble: $(BINNAME).bin
-	objdump -D -b binary --stop-address=0x005c -mi386 -Maddr16,data16 $< | less
