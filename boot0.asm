@@ -36,10 +36,9 @@ BOOT1_NB_SECTORS    equ 17     ; 8.5kB
 ;============================================================================;
 
 start:
-    ; disable interrupts
-    cli
 
 registers_initialization:
+    cli                              ; disable interrupts while changing registers
 
     ; canonicalize the instruction pointer
     ;-------------------------------------
@@ -65,8 +64,7 @@ registers_initialization:
     mov        ss, ax
     mov        sp, STACK_BASE_OFFSET ; set the stack pointer to the top of the stack
 
-    ; enable interrupts
-    sti
+    sti                              ; re-enable interrupts
 
     mov        si, msg_init_registers
     call       prints
@@ -78,6 +76,7 @@ reset_drive:
     ; BIOS service.
     mov        cl, 5                 ; maximum number of attempts = 5
 .call_reset_service:
+    clc                              ; clear CF (carry flag)
     mov        ah, 0x00              ; call BIOS service (0x00, BIOS_INT_DRIVE)
     int        BIOS_INT_DRIVE
     jnc        .reset_succeeded      ; if an error occurs, CF(carry flag) is set to 1
@@ -116,6 +115,7 @@ read_boot1_from_drive:
     mov        bp, sp                       ; update base pointer to address the stored values in stack
     mov        dh, 0                        ; head number = 0
 .call_read_service:
+    clc                                     ; clear CF (carry flag)
     mov        al, [ss:bp+4]                ; get the number of remaining sectors to read
     xor        cx, cx                       ; track number = 0, sector number = 0
     mov        cl, [ss:bp+2]                ; start reading at (C,H,S)=(0,0,last_sector_unread)
