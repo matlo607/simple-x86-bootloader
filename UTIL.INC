@@ -3,8 +3,10 @@
 ;============================================================================;
 
 ; BIOS interrupts
-BIOS_INT_VIDEO      equ 0x10
-BIOS_INT_DRIVE      equ 0x13
+BIOS_INT_VIDEO          equ 0x10
+BIOS_INT_LOWMEMORY      equ 0x12
+BIOS_INT_DRIVE          equ 0x13
+BIOS_INT_EXTENDEDMEMORY equ 0x15
 
 ; define usefull characters
 CHAR_NULL           equ 0x0
