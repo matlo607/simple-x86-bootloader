@@ -148,9 +148,8 @@ read_boot1_from_drive:
     jmp        DWORD EXTRA_DATA_SEGMENT:BOOT1_START_ADDR
 
 fatal_error:
-    ; Loop waiting a manual reboot ('hlt' instruction prevents a CPU usage of 100%)
-    hlt                              ; halt the CPU until the next external interrupt is fired
-    jmp        fatal_error           ; just in case an interrupt is risen, jump again to loop indefinitely
+    cli                              ; disable interrupts permanently
+    hlt                              ; halt the CPU until the user performs a manual reboot
 
 
 ;============================================================================;
