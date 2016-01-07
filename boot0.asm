@@ -4,12 +4,7 @@
 
 ;============================================================================;
 [bits 16] ; we are working with 16-bits instructions
-[org 0x7c00] ; set the offset of all referenced addresses to 0x7c00
-
-jmp start
-
-%include "UTIL.INC"
-;============================================================================;
+;[org 0x7c00] ; set the offset of all referenced addresses to 0x7c00
 
 ;============================================================================;
 ;================================== DEFINES =================================;
@@ -31,11 +26,20 @@ STACK_BASE_OFFSET   equ 0x7000 ; stack size = 4kB
 BOOT1_START_ADDR    equ 0x1000
 BOOT1_NB_SECTORS    equ 17     ; 8.5kB
 
+
 ;============================================================================;
 ;================================= CODE =====================================;
 ;============================================================================;
 
-start:
+section .text
+    global _start
+_start:
+    jmp        main
+
+%include "UTIL.INC"
+;============================================================================;
+
+main:
 
 registers_initialization:
     cli                              ; disable interrupts while changing registers
@@ -155,6 +159,7 @@ fatal_error:
 ;============================================================================;
 ;================================== DATA ====================================;
 ;============================================================================;
+section .rodata
     msg_init_registers  db 'Bootloader v0.1, stage 0', CHAR_CR, CHAR_LF, \
                            'Initialization of registers %cs, %ds, %es, %ss, %sp [OK]', \
                            CHAR_CR, CHAR_LF, CHAR_NULL
@@ -170,8 +175,9 @@ fatal_error:
                                'Jump to stage 1 at 0000:1000', CHAR_CR, CHAR_LF, CHAR_NULL
     msg_read_boot1_failure  db 'Fail to read boot1 from drive, please reboot', CHAR_NULL
 
-    ; NULL character stuffing
-    times 510-($-$$)    db CHAR_NULL
 
-    ; MBR signature
-    dw 0xAA55
+;    ; NULL character stuffing
+;    times 510-($-$$)    db CHAR_NULL
+;
+;    ; MBR signature
+;    dw 0xAA55

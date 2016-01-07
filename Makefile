@@ -1,19 +1,26 @@
 ASM=nasm
-NASMFLAGS=-O0 -f bin
+NASMFLAGS=-O0 -f elf32
+
+LD=ld
+LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
 
 QEMU=qemu-system-i386
 QEMUFLAGS=-s -boot a
 
 SRC_ASM= $(wildcard *.asm)
-BIN= $(SRC_ASM:.asm=.bin)
+OBJ= $(SRC_ASM:.asm=.o)
+BIN= $(OBJ:.o=.bin)
 
 IMG=bootloader.img
 
 all:  $(BIN)
 
 
-%.bin: %.asm
+%.o: %.asm
 	$(ASM) $(NASMFLAGS) -o $@ -l $*.lst $<
+
+%.bin: %.o
+	$(LD) $(LDFLAGS) -T$*.ld -o $@ $<
 
 $(IMG): $(BIN)
 	cat $^ /dev/zero | dd of=$@ bs=512 count=2880
