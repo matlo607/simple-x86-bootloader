@@ -15,10 +15,11 @@ LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
 CC=$(ARCH_PREFIX)-gcc
 CFLAGS=-std=c99 -DDEBUG -O0 -c -g -march=i386 -m16 -ffreestanding -W -Wall -I$(BOOTLOADER_API_INC_PATH)
 
+OBJDUMP=$(ARCH_PREFIX)-objdump
 OBJCOPY=$(ARCH_PREFIX)-objcopy
 
 QEMU=qemu-system-i386
-QEMUFLAGS=-s -boot a -vga std -k fr -m 64M
+QEMUFLAGS=-s -cpu pentium3 -boot a -display sdl -vga std -k fr -m 64M
 
 SRC_ASM= $(wildcard *.asm)
 SRC_C= $(wildcard *.c)
@@ -33,6 +34,10 @@ all: $(BIN)
 
 boot0.elf: boot0.o
 bootloader.elf: bootstrap.o bootloader.o $(BOOTLOADER_API_OBJ_PATH)/*.o
+
+BINARY=bootloader.img
+ELF_STAGE0=boot0.elf
+ELF_STAGE1=bootloader.elf
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -59,8 +64,14 @@ bootloader-api:
 
 
 # Inspection tools
-disassemble: $(BINARY)
-	objdump -D -b binary -mi386 -Maddr16,data16 $< | less
+disassemble-bin: $(BINARY)
+	$(OBJDUMP) -D -b binary -mi386 -Maddr16,data16 $< | less
+
+disassemble-elf-stage0: $(ELF_STAGE0)
+	$(OBJDUMP) -d -mi386 -Maddr16,data16 $< | less
+
+disassemble-elf-stage1: $(ELF_STAGE1)
+	$(OBJDUMP) -d -mi386 -Maddr16,data16 $< | less
 
 hexdump: $(BINARY)
 	xxd -c 1 $< | less

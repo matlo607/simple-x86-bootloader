@@ -6,11 +6,13 @@
 /*
  * \brief Wait a keystroke on keyboard.
  *
- * BIOS interrupt: 0x16
- * service:        0x01
- *
+ * \note Remove the stroke from buffer.
  * */
+#if 0 // replaced by a define using keyboard_getc()
 extern void keyboard_waitkeystroke(void);
+#endif
+#define keyboard_waitkeystroke() \
+    keyboard_getc(false)
 
 /*
  * \brief Get a character from keyboard.

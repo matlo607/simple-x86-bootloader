@@ -2,6 +2,8 @@
 
 #include "screen.h"
 
+bool upper_memory_properties_int15_E801(upper_memory_prop_t* properties);
+
 int16_t lower_memory_properties(void)
 {
     int16_t lower_mem = 0;
@@ -28,7 +30,7 @@ int16_t lower_memory_properties(void)
                                                           // of memory before EBDA
                             [res] "=g" (res)
                           :
-                          : "cc");
+                          : "%eax", "cc");
 
     if (!res) {
         lower_mem = -1;
@@ -40,13 +42,6 @@ int16_t lower_memory_properties(void)
 
 bool upper_memory_properties(upper_memory_prop_t* properties)
 {
-    bool succeeded = false;
-
-    uint16_t upper_mem_1MB_to_16MB_extended = 0;
-    uint16_t upper_mem_16MB_to_4GB_extended = 0;
-    uint16_t upper_mem_1MB_to_16MB_configured = 0;
-    uint16_t upper_mem_16MB_to_4GB_configured = 0;
-
     // The region of RAM above 1 MiB is not standardized, well-defined, or contiguous.
     // Some sub-regions of it contains memory mapped hardware, that nothing but a device
     // driver should ever access.
@@ -55,62 +50,92 @@ bool upper_memory_properties(upper_memory_prop_t* properties)
     //             0x00F00000 to 0x00FFFFFF (1MB)  -- ISA Memory Hole 15-16MB
     //             0x01000000 to ????????   (?MB)  -- free for use (if it exists)
     // When we go beyond 16MB, the best way to detect the memory of a PC
-    // --> INT 0x15, %ax = 0xE820 command
-    // But quite complicated to handle for us since we just need some MBs to load the kernel
-    // but for sure less than 16MB.
-    // We will use INT 0x15, %ax = 0xE801 command instead.
-    // CF    Carry Flag    Non-Carry - indicates no error
-    // %ax   Extended 1    Number of contiguous KB between 1 and 16 MB, maximum 0x3C00 = 15 MB.
-    // %bx   Extended 2    Number of contiguous 64 KB blocks between 16 MB and 4 GB.
-    // %cx   Configured 1  Number of contiguous KB between 1 and 16 MB, maximum 0x3C00 = 15 MB.
-    // %dx   Configured 2  Number of contiguous 64 KB blocks between 16 MB and 4 GB.
-    // Some BIOSes always return with %ax = %bx = 0, others with %cx = %dx = 0, and others
-    // returns valid results in both. We have to perform a check on these returned values.
+    // --> INT 0x15, %ax = 0xE801 command
 
-    __asm__ __volatile__ ("clc;"
+
+    // We will use INT 0x15, %ax = 0xE801 command instead.
+    return upper_memory_properties_int15_E801(properties);
+}
+
+/*
+ * CF    Carry Flag    Non-Carry - indicates no error
+ * %ax   Extended 1    Number of contiguous KB between 1 and 16 MB, maximum 0x3C00 = 15 MB.
+ * %bx   Extended 2    Number of contiguous 64 KB blocks between 16 MB and 4 GB.
+ * %cx   Configured 1  Number of contiguous KB between 1 and 16 MB, maximum 0x3C00 = 15 MB.
+ * %dx   Configured 2  Number of contiguous 64 KB blocks between 16 MB and 4 GB.
+ * Some BIOSes always return with %ax = %bx = 0, others with %cx = %dx = 0, and others
+ * returns valid results in both. We have to perform a check on these returned values.
+ **/
+bool upper_memory_properties_int15_E801(upper_memory_prop_t* properties)
+{
+    bool succeeded = false;
+
+    uint8_t cmd_status = 0;
+    uint16_t upper_mem_1MB_to_16MB_extended = 0;
+    uint16_t upper_mem_16MB_to_4GB_extended = 0;
+    uint16_t upper_mem_1MB_to_16MB_configured = 0;
+    uint16_t upper_mem_16MB_to_4GB_configured = 0;
+
+    __asm__ __volatile__ ("push %%edx;"
+                          "clc;"
                           "movw %[bios_service_upper_mem], %%ax;"
                           "xorw %%bx, %%bx;"
                           "xorw %%cx, %%cx;"
                           "xorw %%dx, %%dx;"
                           "int $0x15;"
-                          "jc 1f;"
+                          //"jc 1f;"
+                          "movb %%ah, %[cmd_status];"
                           "movw %%ax, %[upper_mem_1MB_to_16MB_extended];"
                           "movw %%bx, %[upper_mem_16MB_to_4GB_extended];"
                           "movw %%cx, %[upper_mem_1MB_to_16MB_configured];"
                           "movw %%dx, %[upper_mem_16MB_to_4GB_configured];"
-                          "movb $1, %[res];"
-                          "1:"
-                          : [upper_mem_1MB_to_16MB_extended] "=g" (upper_mem_1MB_to_16MB_extended),
+                          //"movb $1, %[res];"
+                          "1: pop %%edx;"
+                          : [cmd_status] "=g" (cmd_status),
+                            [upper_mem_1MB_to_16MB_extended] "=g" (upper_mem_1MB_to_16MB_extended),
                             [upper_mem_16MB_to_4GB_extended] "=g" (upper_mem_16MB_to_4GB_extended),
                             [upper_mem_1MB_to_16MB_configured] "=g" (upper_mem_1MB_to_16MB_configured),
-                            [upper_mem_16MB_to_4GB_configured] "=g" (upper_mem_16MB_to_4GB_configured),
-                            [res] "=g" (succeeded)
-                          : [bios_service_upper_mem] "i" (0xe820)
-                          : "cc");
+                            [upper_mem_16MB_to_4GB_configured] "=g" (upper_mem_16MB_to_4GB_configured)//,
+                            //[res] "=g" (succeeded)
+                          : [bios_service_upper_mem] "i" (0xe801)
+                          : "%eax", "%ebx", "%ecx", "cc");
 
-    printf("Upper memory extended: %uKB [0x%x] (maximum 15MB [0x3c00])\r\n",
-            upper_mem_1MB_to_16MB_extended,
-            upper_mem_1MB_to_16MB_extended);
-    printf("                       %u x 64KB [0x%x]\r\n",
-            upper_mem_16MB_to_4GB_extended,
-            upper_mem_16MB_to_4GB_extended);
+    //printf("cmd_status : 0x%x\r\n", cmd_status);
+    if (cmd_status == 0x86) {
+        printf("int 0x15, ax=0xE801: unsupported function\r\n");
 
-    printf("Upper memory configured: %uKB [0x%x] (maximum 15MB [0x3c00])\r\n",
-            upper_mem_1MB_to_16MB_configured,
-            upper_mem_1MB_to_16MB_configured);
-    printf("                         %u x 64KB [0x%x]\r\n",
-            upper_mem_16MB_to_4GB_configured,
-            upper_mem_16MB_to_4GB_configured);
+    } else if (cmd_status == 0x80) {
+        printf("int 0x15, ax=0xE801: invalid command\r\n");
 
-    if (upper_mem_1MB_to_16MB_extended || upper_mem_16MB_to_4GB_extended) {
-        properties->_1MB_to_16MB = upper_mem_1MB_to_16MB_extended;
-        properties->_16MB_to_4GB = upper_mem_16MB_to_4GB_extended;
-    } else if (upper_mem_1MB_to_16MB_extended || upper_mem_16MB_to_4GB_extended) {
-        properties->_1MB_to_16MB = upper_mem_1MB_to_16MB_configured;
-        properties->_16MB_to_4GB = upper_mem_16MB_to_4GB_configured;
     } else {
-        properties->_1MB_to_16MB = 0;
-        properties->_16MB_to_4GB = 0;
+        //printf("Upper memory extended: %uKB [0x%x] (maximum 15MB [0x3c00])\r\n",
+        //        upper_mem_1MB_to_16MB_extended,
+        //        upper_mem_1MB_to_16MB_extended);
+        //printf("                       %u x 64KB [0x%x]\r\n",
+        //        upper_mem_16MB_to_4GB_extended,
+        //        upper_mem_16MB_to_4GB_extended);
+
+        //printf("Upper memory configured: %uKB [0x%x] (maximum 15MB [0x3c00])\r\n",
+        //        upper_mem_1MB_to_16MB_configured,
+        //        upper_mem_1MB_to_16MB_configured);
+        //printf("                         %u x 64KB [0x%x]\r\n",
+        //        upper_mem_16MB_to_4GB_configured,
+        //        upper_mem_16MB_to_4GB_configured);
+
+        if (upper_mem_1MB_to_16MB_extended || upper_mem_16MB_to_4GB_extended) {
+            properties->_1MB_to_16MB = upper_mem_1MB_to_16MB_extended;
+            properties->_16MB_to_4GB = upper_mem_16MB_to_4GB_extended;
+        } else if (upper_mem_1MB_to_16MB_extended || upper_mem_16MB_to_4GB_extended) {
+            properties->_1MB_to_16MB = upper_mem_1MB_to_16MB_configured;
+            properties->_16MB_to_4GB = upper_mem_16MB_to_4GB_configured;
+        } else {
+            properties->_1MB_to_16MB = 0;
+            properties->_16MB_to_4GB = 0;
+        }
+
+        if (properties->_1MB_to_16MB <= 0x3c00) { // Maximum 15MB [0x3c00]
+            succeeded = true;
+        }
     }
 
     return succeeded;

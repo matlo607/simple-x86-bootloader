@@ -20,21 +20,30 @@ typedef u8 video_mode_t;
 #define VIDEO_MODE_GRAPHICS_4C2_40x25_320x200   0x05 // Graphics,   4 colors,                    40x25, 320x200          (CGA,EGA,MCGA,VGA)
 #define VIDEO_MODE_GRAPHICS_2C_80x25_640x200    0x06 // Graphics,   2 colors (black and white),  80x25, 640x200          (CGA,EGA,MCGA,VGA)
 #define VIDEO_MODE_TEXT_MONO_80x25              0x07 // Text mode,  monochrome,                  80x25                   (MDA,HERC,EGA,VGA)
-
+#define VIDEO_MODE_GRAPHICS_16C_160x200         0x08 // Graphics,   16 colors,                   40x25, 160x200          (PCjr)
+#define VIDEO_MODE_GRAPHICS_16C_320x200         0x09 // Graphics,   16 colors,                   40x25, 320x200          (PCjr)
+#define VIDEO_MODE_GRAPHICS_16C_640x200         0x0a // Graphics,   4 colors,                    40x25, 640x200          (PCjr)
 #define VIDEO_MODE_RESERVED_0x0b                0x0b // reserved
 #define VIDEO_MODE_RESERVED_0x0c                0x0c // reserved
+#define VIDEO_MODE_GRAPHICS_16C_40x25_320x200   0x0d // Graphics,   16 colors,                   40x25, 320x200          (EGA,VGA)
+#define VIDEO_MODE_GRAPHICS_16C_80x25_640x200   0x0e // Graphics,   16 colors,                   80x25, 640x200          (EGA,VGA)
+#define VIDEO_MODE_GRAPHICS_MONO_80x25          0x0f // Graphics,   monochrome,                  80x25                   (EGA,VGA)
+#define VIDEO_MODE_GRAPHICS_4_16C_80x25_640x350 0x10 // Graphics,   4/16 colors,                 80x25, 640x350          (EGA or VGA with 128K)
+#define VIDEO_MODE_GRAPHICS_2C_640x480          0x11 // Graphics,   2 colors,                    640x480                 (MCGA,VGA)
+#define VIDEO_MODE_GRAPHICS_16C_640x480         0x12 // Graphics,   16 colors,                   640x480                 (VGA)
+#define VIDEO_MODE_GRAPHICS_256C_640x480        0x13 // Graphics,   256 colors,                  320x200                 (MCGA,VGA)
 
-//#define VIDEO_MODE_GRAPHICS_16C_40x25_320x200   0x0d // Graphics, 16 colors, 40x25, 320x200
-//#define VIDEO_MODE_GRAPHICS_16C_80x25_640x200   0x0e // Graphics, 16 colors, 80x25, 640x200
-//#define VIDEO_MODE_GRAPHICS_MONO_80x25          0x0f // Graphics, monochrome, 80x25
-//#define VIDEO_MODE_GRAPHICS_4_16C_80x25_640x350 0x10 // Graphics, 4/16 colors, 80x25, 640x350
+typedef struct video_state_s {
+    video_mode_t mode;
+    uint8_t      char_column_nb;
+    uint8_t      page;
+} video_state_t;
 
 /*
  * \brief Set video mode, then clear the screen and position the cursor at
  * the upper left hand corner of the screen (0,0) and resets the color
  * palette to known values.
  * \param[in] mode   : video mode to set
- * \return new set video mode
  *
  * BIOS interrupt: 0x10
  * service:        0x00
@@ -42,7 +51,37 @@ typedef u8 video_mode_t;
  * Internal registers :
  *  %al : video mode
  * */
-extern video_mode_t video_setmode(video_mode_t mode);
+extern void video_setmode(video_mode_t mode);
+
+/*
+ * \brief Get video state.
+ * \param[in] state : structure that will be filled with the current video state
+ *
+ * BIOS interrupt: 0x10
+ * service:        0x0f
+ *
+ * Internal registers :
+ *  %al : current video mode
+ *  %ah : number of character columns
+ *  %bh : active page
+ * */
+extern void video_getstate(video_state_t* state);
+
+/*
+ * \brief Draw a pixel on screen at the specified coordinates (column, row)
+ * \param[in] column
+ * \param[in] row
+ * \param[in] color
+ *
+ * BIOS interrupt: 0x10
+ * service:        0x0c
+ *
+ * Internal registers :
+ *  %al : color
+ *  %cx : column
+ *  %dx : row
+ * */
+extern void video_draw_pixel(uint16_t column, uint16_t row, uint8_t color);
 
 /*
  * \brief Set cursor position on specified page, row and column.

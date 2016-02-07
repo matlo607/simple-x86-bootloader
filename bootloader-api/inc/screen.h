@@ -4,21 +4,18 @@
 #include "common.h"
 
 /*
- * \brief Print a character on the page given in argument a certain number of times.
+ * \brief Print a character on the active page a certain number of times.
  * \param[in] c     : character
- * \param[in] page  : page number
  * \param[in] count : count of characters to be printed
  *
  * BIOS interrupt: 0x10
- * service:        0x0a
+ * service:        0x0e
  *
  * Internal registers :
  *  %al : character to be written
  *  %bl : color in graphic mode
- *  %bh : page number
- *  %cx : count of characters to be written
  * */
-extern void printc(char c, u8 page, u16 count);
+extern void printc(char c, uint16_t count);
 
 /*
  * \brief Print a string onto the active page until the character specified in

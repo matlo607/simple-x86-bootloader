@@ -3,33 +3,35 @@
 #include "video.h"
 #include "string.h"
 
-void printc(char c, u8 page, u16 count)
+void printc(char c, uint16_t count)
 {
-    cursor_info_t info_cursor;
-    video_getcursorpos(0, &info_cursor);
-
-    __asm__ __volatile__("movb %[bios_service_print_char], %%ah;"
-                         "movb %[char_to_print], %%al;"
-                         "movb %[page], %%bh;"
-                         "movw %[count], %%cx;"
-                         "int $0x10;"
-                         :
-                         : [bios_service_print_char] "i" (0x0a),
-                           [char_to_print] "g" (c),
-                           [page] "g" (page),
-                           [count] "g" (count)
-                         );
-
-    video_setcursorpos(0, info_cursor.row, info_cursor.column + count);
+    for (uint16_t i = 0; i < count; ++i) {
+        __asm__ __volatile__ ("movb %[bios_service_print_char_active_page], %%ah;"
+                              "movb %[char_to_print], %%al;"
+                              "movb %[color], %%bl;"
+                              "int $0x10;"
+                              :
+                              : [bios_service_print_char_active_page] "i" (0x0e),
+                                [char_to_print] "g" (c),
+                                [color] "i" (0x07)
+                              : "%eax", "%ebx"
+                             );
+    }
 }
 
 void printstrc(const char* str, char c)
 {
     while (*str != c) {
         __asm__ __volatile__ (
-                "int $0x10"
+                "movb %[bios_service_print_char_active_page], %%ah;"
+                "movb %[char_to_print], %%al;"
+                "movb %[color], %%bl;"
+                "int $0x10;"
                 :
-                : "a"(0x0e00 | *str), "b"(0x0007)
+                : [bios_service_print_char_active_page] "i" (0x0e),
+                  [char_to_print] "g" (*str),
+                  [color] "i" (0x07)
+                : "%eax", "%ebx"
                 );
         ++str;
     }
@@ -39,9 +41,15 @@ void printstrn(const char* str, uint16_t n)
 {
     for (uint16_t i = 0; i < n && str[i] != '\0'; ++i) {
         __asm__ __volatile__ (
-                "int $0x10"
+                "movb %[bios_service_print_char_active_page], %%ah;"
+                "movb %[char_to_print], %%al;"
+                "movb %[color], %%bl;"
+                "int $0x10;"
                 :
-                : "a"(0x0e00 | str[i]), "b"(0x0007)
+                : [bios_service_print_char_active_page] "i" (0x0e),
+                  [char_to_print] "m" (str[i]),
+                  [color] "i" (0x07)
+                : "%eax", "%ebx"
                 );
     }
 }
@@ -142,7 +150,7 @@ void printf(const char* format, ...)
                     printstrc(str_start, '%');
                     str_start = ++mark;
 
-                    printc(*p_char, 0, 1);
+                    printc(*p_char, 1);
 
                     p = ((void**)p) + 1;
                     break;

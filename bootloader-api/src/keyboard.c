@@ -104,30 +104,35 @@ static char key_mapping_QWERTYtoAZERTY[94] =
 };
 #endif
 
-/* FIX ME : this function does not work, waiting time is ignored */
+#if 0 // replaced by a define using keyboard_getc()
 void keyboard_waitkeystroke(void)
 {
-    __asm__ __volatile__("0: movb %[bios_service_wait_key_stroke], %%ah;"
-                         "int $0x16;"
-                         "jc 0b;"
-                         :
-                         : [bios_service_wait_key_stroke] "i" (0x01)
-                         : "cc"
-                         );
+    /* blocking solution : wait until a key stroke occurs */
+    keyboard_getc(false);
+
+    /* non-blocking solution :
+     * very cpu consumming --> bad idea to use it here.
+     * Just keep it to remember not to use it contrary to what is
+     * explained in some websites.
+     */
+    //__asm__ __volatile__("0: movb %[bios_service_wait_key_stroke], %%ah;"
+    //                     "int $0x16;"
+    //                     "jz 0b;"
+    //                     :
+    //                     : [bios_service_wait_key_stroke] "i" (0x01)
+    //                     : "cc"
+    //                     );
 }
+#endif
 
 char keyboard_getc(bool display_stroke)
 {
     char user_input;
 
-    __asm__ __volatile__("0: movb %[bios_service_wait_key_stroke], %%ah;"
-                         "int $0x16;"
-                         "jc 0b;"
-                         "movb %[bios_service_read_buffer], %%ah;"
+    __asm__ __volatile__("movb %[bios_service_read_buffer], %%ah;"
                          "int $0x16;"
                          : "=a" (user_input)
-                         : [bios_service_wait_key_stroke] "i" (0x01),
-                           [bios_service_read_buffer] "i" (0x00)
+                         : [bios_service_read_buffer] "i" (0x00)
                          : "cc"
                          );
 
@@ -138,7 +143,7 @@ char keyboard_getc(bool display_stroke)
 
 
     if (display_stroke) {
-        printc(user_input, 0, 1);
+        printc(user_input, 1);
     }
 
     return user_input;
@@ -153,7 +158,7 @@ uint16_t keyboard_getline(char* buf, uint16_t len, uint8_t delim)
     while (i < len) {
         char c = keyboard_getc(false);
         if (c != delim) {
-            printc(c, 0, 1);
+            printc(c, 1);
             buf[i] = c;
             ++i;
         } else if (c == '\r') {
