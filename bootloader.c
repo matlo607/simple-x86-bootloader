@@ -79,7 +79,7 @@ void main(void)
     }
 
     printf("Upper memory: %uKB [0x%x] (maximum 15MB [0x3c00])\r\n", upper_memory._1MB_to_16MB, upper_memory._1MB_to_16MB);
-    printf("              %u x 64KB [0x%x]\r\n", upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB);
+    printf("              %uKB [0x%x] (%uMB)\r\n", upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB / 1024);
 
     prints("Reset disk controller: ");
     if (disk_reset(boot_drive_nb)) {

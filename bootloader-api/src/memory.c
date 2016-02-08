@@ -4,6 +4,10 @@
 
 bool upper_memory_properties_int15_E801(upper_memory_prop_t* properties);
 
+#if 0
+bool upper_memory_properties_int15_88(upper_memory_prop_t* properties);
+#endif
+
 int16_t lower_memory_properties(void)
 {
     int16_t lower_mem = 0;
@@ -42,6 +46,8 @@ int16_t lower_memory_properties(void)
 
 bool upper_memory_properties(upper_memory_prop_t* properties)
 {
+    bool succeeded = false;
+
     // The region of RAM above 1 MiB is not standardized, well-defined, or contiguous.
     // Some sub-regions of it contains memory mapped hardware, that nothing but a device
     // driver should ever access.
@@ -54,7 +60,15 @@ bool upper_memory_properties(upper_memory_prop_t* properties)
 
 
     // We will use INT 0x15, %ax = 0xE801 command instead.
-    return upper_memory_properties_int15_E801(properties);
+    succeeded = upper_memory_properties_int15_E801(properties);
+#if 0
+    if (!succeeded) {
+        // ultimate hope before abandon (does not work on Qemu, damn it !)
+        succeeded = upper_memory_properties_int15_88(properties);
+    }
+#endif
+
+    return succeeded;
 }
 
 /*
@@ -136,8 +150,54 @@ bool upper_memory_properties_int15_E801(upper_memory_prop_t* properties)
         if (properties->_1MB_to_16MB <= 0x3c00) { // Maximum 15MB [0x3c00]
             succeeded = true;
         }
+
+        properties->_16MB_to_4GB = properties->_16MB_to_4GB * 64;
     }
 
     return succeeded;
 }
 
+#if 0
+bool upper_memory_properties_int15_88(upper_memory_prop_t* properties)
+{
+    bool succeeded = false;
+    uint8_t cmd_status = 0;
+
+    __asm__ __volatile__ (
+                          //"clc;"
+                          "movb %[bios_service_upper_mem], %%ah;"
+                          "int $0x15;"
+                          //"jc 1f;"
+                          //"test %%ax, %%ax;"
+                          //"je 1f;"
+                          "movb %%ah, %[cmd_status];"
+                          "movw %%ax, %[upper_mem_1MB_to_16MB];"
+                          "movb $1, %[res];"
+                          //"1:"
+                          : [res] "=g" (succeeded),
+                            [cmd_status] "=g" (cmd_status),
+                            [upper_mem_1MB_to_16MB] "=g" (properties->_1MB_to_16MB)
+                          : [bios_service_upper_mem] "i" (0x88)
+                          : "%eax", "cc"
+                          );
+
+    // Set it to 0 but does not mean there is not memory above 15MB
+    properties->_16MB_to_4GB = 0;
+
+    if (cmd_status == 0x86) {
+        printf("int 0x15, ax=0x88: unsupported function\r\n");
+
+    } else if (cmd_status == 0x80) {
+        printf("int 0x15, ax=0x88: invalid command\r\n");
+
+    } else {
+        succeeded = true;
+    }
+
+    if (!succeeded) {
+        properties->_1MB_to_16MB = 0;
+    }
+
+    return succeeded;
+}
+#endif
