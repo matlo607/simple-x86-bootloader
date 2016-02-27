@@ -2,6 +2,58 @@
 
 #include "screen.h"
 
+int16_t memory_map_int15_E820(SMAP_entry_t* buffer, int16_t nb_max_entries)
+{
+    uint32_t continuation_val = 0;
+    uint32_t signature;
+    uint32_t bytes = 0;
+
+    int16_t nb_entries = 0;
+
+    do {
+
+        __asm__ __volatile__ (
+                              "xor %%eax, %%eax;"
+                              "movw %[bios_service_e820], %%ax;"
+                              "movl %[continuation_val_in], %%ebx;"
+                              "movl %[struct_size], %%ecx;"
+                              "movl %[signature_in], %%edx;"
+                              "movw %[buffer], %%di;"
+                              "int $0x15;"
+                              "jc 1f;"
+                              "movl %%eax, %[signature_out];"
+                              "movl %%ebx, %[continuation_val_out];"
+                              "movl %%ecx, %[bytes];"
+                              "1:"
+                              : [signature_out] "=g" (signature),
+                                [continuation_val_out] "=g" (continuation_val),
+                                [bytes] "=g" (bytes)
+                              : [bios_service_e820] "i" (0xe820),
+                                [continuation_val_in] "g" (continuation_val),
+                                [struct_size] "i" (24),
+                                [signature_in] "i" (0x534D4150),
+                                [buffer] "g" (buffer)
+                              : "cc");
+
+        if (signature != 0x534D4150) {
+            nb_entries = -1;
+            break;
+
+        } else if (bytes > 20 && (buffer->ACPI & 0x1) == 0x0) {
+            // Ignore the entry
+
+            // Explanation :
+            // bit 0 of the Extended Attributes indicates if the entire entry should be ignored (if the bit is clear)
+        } else {
+            nb_entries++;
+            buffer++;
+        }
+
+    } while (continuation_val != 0 && nb_entries < nb_max_entries);
+
+    return nb_entries;
+}
+
 bool upper_memory_properties_int15_E801(upper_memory_prop_t* properties);
 
 #if 0

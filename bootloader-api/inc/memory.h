@@ -19,6 +19,17 @@
     __asm__ __volatile__ ( "movw %w0, %%bp" : : "r" (ADDR) )
 
 
+typedef struct SMAP_entry_s {
+    uint32_t baseL; // base address uint64_t
+    uint32_t baseH;
+    uint32_t lengthL; // length uint64_t
+    uint32_t lengthH;
+    uint32_t type; // entry Type
+    uint32_t ACPI; // extended
+} __attribute__((packed)) SMAP_entry_t;
+
+int16_t memory_map_int15_E820(SMAP_entry_t* buffer, int16_t nb_max_entries);
+
 typedef struct upper_mem_prop_s {
     uint16_t _1MB_to_16MB; // number of contiguous KB between 1 and 16 MB, maximum 0x3C00 = 15 MB
     uint16_t _16MB_to_4GB; // number of contiguous 64 KB blocks between 16 MB and 4 GB

@@ -17,6 +17,8 @@
 #define BOOTLOADER_VERSION      0
 #define BOOTLOADER_REVISION     1
 
+SMAP_entry_t memory_mapping[20];
+
 void main(void)
 {
     // detach printing of stage 1 from stage 0
@@ -80,6 +82,14 @@ void main(void)
 
     printf("Upper memory: %uKB [0x%x] (maximum 15MB [0x3c00])\r\n", upper_memory._1MB_to_16MB, upper_memory._1MB_to_16MB);
     printf("              %uKB [0x%x] (%uMB)\r\n", upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB / 1024);
+
+
+    int16_t nb_entries = memory_map_int15_E820(memory_mapping, 20);
+    if (nb_entries == -1) {
+        printf("Error while mapping memory with int 15h, 0xe820\r\n");
+    } else {
+        printf("Memory map (nb entries = %d)\r\n", nb_entries);
+    }
 
     prints("Reset disk controller: ");
     if (disk_reset(boot_drive_nb)) {
