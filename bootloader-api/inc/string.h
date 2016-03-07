@@ -64,4 +64,13 @@ extern char* strncpy(char *dest, const char *src, uint16_t n);
  * */
 extern void strnrev(char* str, uint16_t n);
 
+/*
+ * \brief Fill memory with a constant byte.
+ * \param[inout] mem : buffer
+ * \param[in]    c   : constant byte
+ * \param[in]    n   : number of bytes to set
+ *
+ * */
+extern void memset(void* mem, uint8_t c, uint16_t n);
+
 #endif

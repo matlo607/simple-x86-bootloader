@@ -100,3 +100,10 @@ void strnrev(char* str, uint16_t n)
     }
 }
 
+void memset(void* mem, uint8_t c, uint16_t n)
+{
+    for (uint16_t i = 0; i < n; ++i) {
+        ((uint8_t*) mem)[i] = c;
+    }
+}
+
