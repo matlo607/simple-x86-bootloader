@@ -28,7 +28,7 @@ SECTIONS{
     .text ORIGIN(REGION_TEXT) : {
         boot1_text_load_start = . ;
 
-        bootstrap.o(.text)
+        boot1_bootstrap.o(.text)
         *(.text*)
 
         boot1_text_load_end = . ;
@@ -44,7 +44,7 @@ SECTIONS{
 
     .rodata ORIGIN(segment_data) : AT(ADDR(.text) + SIZEOF(.text)) {
         boot1_rodata_load_start = . ;
-
+        
         /* If the first rodata is referenced by a pointer, its address
          * is 0x0000. This address is used also to refer to the NULL
          * pointer. Thus to avoid a colision between the first rodata

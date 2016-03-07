@@ -4,13 +4,11 @@ ARCH_PREFIX=i386-elf
 ## Directories ##
 #################
 
-BOOTLOADER_API_DIR=./bootloader-api
+BOOTLOADER_API_DIR=../bootloader-api
 
 BOOTLOADER_API_SRC_PATH=$(BOOTLOADER_API_DIR)/src
 BOOTLOADER_API_INC_PATH=$(BOOTLOADER_API_DIR)/inc
 BOOTLOADER_API_OBJ_PATH=$(BOOTLOADER_API_DIR)/src
-
-BOOT0_DIR=./boot0
 
 #####################
 ## TOOLS AND FLAGS ##
@@ -35,10 +33,9 @@ QEMUFLAGS=-s -cpu pentium3 -boot a -display sdl -vga std -k fr -m 64M
 ## DEPENDENCIES ##
 ##################
 
-IMG=bootloader.img
-BINARY=bootloader.img
-ELF_STAGE0=$(BOOT0_DIR)/boot0.elf
-ELF_STAGE1=bootloader.elf
+IMG=bootloader_dummy.img
+ELF_STAGE0=boot0.elf
+ELF_STAGE1=boot1_dummy.elf
 
 
 SRC_ASM= $(wildcard *.asm)
@@ -56,13 +53,23 @@ BIN= $(ELF:.elf=.bin)
 all: $(BIN)
 
 
+BOOT1_BOOTLOADER_API_DEP=$(BOOTLOADER_API_OBJ_PATH)/keyboard.o \
+						 $(BOOTLOADER_API_OBJ_PATH)/screen.o \
+						 $(BOOTLOADER_API_OBJ_PATH)/string.o \
+						 $(BOOTLOADER_API_OBJ_PATH)/system.o
+
+boot0.elf: boot0.o
+boot1_dummy.elf: $(BOOT1_BOOTLOADER_API_DEP) boot1_bootstrap.o boot1_dummy.o
+
+BINARY=boot1_dummy.bin
+ELF_STAGE0=boot0.elf
+ELF_STAGE1=boot1_dummy.elf
+
+
 $(OBJ_API):
 	$(MAKE) -C $(BOOTLOADER_API_SRC_PATH)
 
-$(ELF_STAGE0):
-	$(MAKE) -C $(BOOT0_DIR)
-
-$(ELF_STAGE1): $(OBJ_API) bootstrap.o bootloader.o
+#$(BOOT1_BOOTLOADER_API_DEP): $(OBJ_API)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -88,12 +95,9 @@ clean:
 	-rm -f *.o *.elf *.lst *.bin $(IMG)
 
 clean-api:
-	-$(MAKE) -C $(BOOTLOADER_API_SRC_PATH) clean
+	$(MAKE) -C $(BOOTLOADER_API_SRC_PATH) clean
 
-clean-boot0:
-	-$(MAKE) -C $(BOOT0_DIR) clean
-
-clean-all: clean-boot0 clean-api clean
+clean-all: clean-api clean
 
 
 # Inspection tools
