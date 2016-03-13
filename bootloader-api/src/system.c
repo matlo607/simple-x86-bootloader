@@ -8,24 +8,24 @@
 
 equipment_info_t equipment_get_info(void)
 {
-    uint16_t field = 0x0;
+    equipment_info_t field = {0};
 
     __asm__ __volatile__ (
-            "int $0x12;"
+            "int $0x11;"
             "movw %%ax, %[equipment_info];"
             : [equipment_info] "=g" (field)
             :
-            : "%eax"
+            : "%ax"
             );
 
-    return *((equipment_info_t*)&field);
+    return field;
 }
 
 
 void equipment_print_info(equipment_info_t equipment)
 {
-    const char status_absent[] = "absent";
-    const char status_installed[] = "installed";
+    static const char status_absent[] = "absent";
+    static const char status_installed[] = "installed";
     const char* status = NULL;
 
     status = (equipment.math_coprocessor) ? status_installed : status_absent;
