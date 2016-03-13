@@ -19,19 +19,6 @@
     __asm__ __volatile__ ( "movw %w0, %%bp" : : "r" (ADDR) )
 
 
-/*
- * Dynamic allocation's functions
- **/
-
-#define HEAP_MAX_SIZE   4096 // 4kB
-
-extern void* malloc(uint16_t size);
-extern void* calloc(uint16_t nmemb, uint16_t size);
-extern void* realloc(void *ptr, uint16_t size);
-extern void free(void *ptr);
-
-
-
 typedef struct SMAP_entry_s {
     uint32_t baseL; // base address uint64_t
     uint32_t baseH;
