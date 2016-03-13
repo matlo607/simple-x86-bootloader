@@ -3,9 +3,9 @@ OUTPUT_ARCH(i386)
 ENTRY (_start)
 
 MEMORY {
-    /* 17 sectors are allocated to the second stage bootloader.
+    /* 35 sectors are allocated to the second stage bootloader.
      * */
-    disk_mem(r) : ORIGIN = 0x0, LENGTH = 512 * 17
+    disk_mem(r) : ORIGIN = 0x0, LENGTH = 512 * 17 + 512 * 18
 
     /* The code and the data (.data, .rodata, .bss, heap and stack) are
      * located in two different memory area with a size of 64KB each one.

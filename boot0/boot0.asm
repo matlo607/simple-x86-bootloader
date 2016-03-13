@@ -26,7 +26,11 @@ STACK_BASE_OFFSET   equ 0x7000 ; stack size = 4kB
 
 ; Stage 1's location in RAM
 BOOT1_START_ADDR    equ 0x1000
-BOOT1_NB_SECTORS    equ 17     ; 8.5kB
+; Stage 1's location on disk
+BOOT1_HEAD0_CYLINDER0_SECTOR_BEGIN  equ 2      ; the first sector is used by boot0
+BOOT1_HEAD0_CYLINDER0_NB_SECTORS    equ 17     ; 8.5kB
+BOOT1_HEAD0_CYLINDER1_SECTOR_BEGIN  equ 1
+BOOT1_HEAD0_CYLINDER1_NB_SECTORS    equ 18     ; 9kB
 
 
 ;============================================================================;
@@ -114,7 +118,7 @@ reset_drive:
     ; BIOS service.
     mov        cl, 5                 ; maximum number of attempts = 5
 .call_reset_service:
-    clc                              ; clear CF (carry flag)
+    ;clc                              ; clear CF (carry flag)
     mov        ah, 0x00              ; call BIOS service (0x00, BIOS_INT_DRIVE)
     int        BIOS_INT_DRIVE
     jnc        .reset_succeeded      ; if an error occurs, CF(carry flag) is set to 1
@@ -135,52 +139,50 @@ reset_drive:
 
 read_boot1_from_drive:
     ; Read 'boot1' from the hard disk drive.
-    ; 'boot0' is located at (C,H,S)=(0,0,1). 'boot1' follows at (0,0,2) until (0,0,18).
-    ; 'boot1' will be stored at EXTRA_DATA_SEGMENT:BOOT1_START_ADDR and will occupy 8.5kB.
+    ; 'boot0' is located at (C,H,S)=(0,0,1). 'boot1' follows at (0,0,2) until (1,0,18).
+    ; 'boot1' will be stored at EXTRA_DATA_SEGMENT:BOOT1_START_ADDR and will occupy 17.5kB.
     ;
     ; Details about the BIOS service :
     ; - the drive number in %bl stays untouched.
-    ; - the head number is stored in %dh and will not change to read the 17 sectors.
+    ; - the head number is stored in %dh.
     ; - the 10-bits track/cylinder number is stored in 2 registers, %cl (bits 9,8 of
     ;   the track number on bits 7,6) and %ch (bits 7,0 of the track number on bits
-    ;   7,0). This number will not change to read the 17 sectors.
+    ;   7,0).
     ; - the 6-bits sector number is stored in %cl (bits 5,0).
-    push       BOOT1_START_ADDR             ; address of buffer
-                                            ; at the beginning--> EXTRA_DATA_SEGMENT:BOOT1_START_ADDR
-    push       BOOT1_NB_SECTORS             ; number of sectors to read = 17
-    push       2                            ; start reading at (C,H,S)=(0,0,2)
-    push       5                            ; maximum number of attempts = 5
-    mov        bp, sp                       ; update base pointer to address the stored values in stack
+    ;
+    ; %al <-- 17,18
+    ; %dl <-- drive_number
+    ; %dh <-- 0
+    ; %bx <-- @buffer
+    ; %ch <-- 0,1
+    ; %cl <-- 2,1
     mov        dh, 0                        ; head number = 0
-.call_read_service:
-    clc                                     ; clear CF (carry flag)
-    mov        al, [ss:bp+4]                ; get the number of remaining sectors to read
-    xor        cx, cx                       ; track number = 0, sector number = 0
-    mov        cl, [ss:bp+2]                ; start reading at (C,H,S)=(0,0,last_sector_unread)
-    mov        bx, [ss:bp+6]                ; address of buffer --> EXTRA_DATA_SEGMENT:new_offset_sector
-    mov        ah, 0x02                     ; call BIOS service (0x02, BIOS_INT_DRIVE)
-    int        BIOS_INT_DRIVE
+.read_C0_H0_S2_to_S18:
+    mov        al, BOOT1_HEAD0_CYLINDER0_NB_SECTORS
+    mov        bx, BOOT1_START_ADDR ; address of buffer --> EXTRA_DATA_SEGMENT:new_offset_sector
+    mov        cx, 0x0002           ; track number = 0, sector number = 2
+    jmp        .read_bios_call
 
+.read_C1_H0_S1_to_S18:
+    mov        al, BOOT1_HEAD0_CYLINDER1_NB_SECTORS
+    mov        bx, (BOOT1_START_ADDR + 512*17) ; address of buffer --> EXTRA_DATA_SEGMENT:new_offset_sector
+    mov        cx, 0x0101           ; track number = 1, sector number = 1
+
+.read_bios_call:
+    mov        ah, 0x02             ; call BIOS service (0x02, BIOS_INT_DRIVE)
+    ;clc                            ; clear CF (carry flag)
+    int        BIOS_INT_DRIVE
     jnc        .read_succeeded              ; if an error occurs, CF(carry flag) is set to 1
                                             ; CF set to 0, all the sectors were read correctly
-    ; if sectors were read, check the number in %al
-    cmp        DWORD [ss:bp], 0             ; check if we still can attempt a new read
-    je         .read_failed                 ; counter_attempt == 0, read failed too many times, abandon
-    dec        DWORD [ss:bp]                ; decrement the possible attempts' counter
-    sub        [ss:bp+4], al                ; update the number of sectors to read
-    add        [ss:bp+2], al                ; update the last sector read
-    mov        ah, 0
-    imul       ax, 512
-    add        [ss:bp+6], ax                ; update the buffer's address
-    jmp        .call_read_service
-
-.read_failed:
-    mov        si, msg_read_boot1_failure
-    call       prints
-    jmp        fatal_error
+.read_fail:
+    cmp        cx, 0x0002
+    je         .read_C0_H0_S2_to_S18
+    jmp        .read_C1_H0_S1_to_S18
 
 .read_succeeded:
-    add        sp, 6
+    cmp        cx, 0x0002
+    je         .read_C1_H0_S1_to_S18
+
     ;mov        si, msg_read_boot1_success
     ;call       prints
     jmp        DWORD EXTRA_DATA_SEGMENT:BOOT1_START_ADDR
