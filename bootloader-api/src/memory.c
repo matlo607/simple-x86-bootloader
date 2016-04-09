@@ -1,62 +1,7 @@
 #include "memory.h"
 
-#include "screen.h"
+#include "io.h"
 #include "string.h"
-#include "keyboard.h"
-
-
-int16_t memory_map_int15_E820(SMAP_entry_t* buffer, int16_t nb_max_entries)
-{
-    uint32_t continuation_val = 0;
-    uint32_t signature;
-    uint32_t bytes = 0;
-
-    int16_t nb_entries = 0;
-
-    do {
-
-        __asm__ __volatile__ (
-                              "xor %%eax, %%eax;"
-                              "movw %[bios_service_e820], %%ax;"
-                              "movl %[continuation_val_in], %%ebx;"
-                              "movl %[struct_size], %%ecx;"
-                              "movl %[signature_in], %%edx;"
-                              "movw %[buffer], %%di;"
-                              "int $0x15;"
-                              "jc 1f;"
-                              "movl %%eax, %[signature_out];"
-                              "movl %%ebx, %[continuation_val_out];"
-                              "movl %%ecx, %[bytes];"
-                              "1:"
-                              : [signature_out] "=o" (signature),
-                                [continuation_val_out] "=o" (continuation_val),
-                                [bytes] "=o" (bytes)
-                              : [bios_service_e820] "i" (0xe820),
-                                [continuation_val_in] "o" (continuation_val),
-                                [struct_size] "i" (sizeof(SMAP_entry_t)),
-                                [signature_in] "i" (0x534D4150),
-                                [buffer] "o" (buffer)
-                              : "cc");
-
-        if (signature != 0x534D4150) {
-            nb_entries = -1;
-            break;
-
-        } else if (bytes > 20 && (buffer->ACPI & 0x1) == 0x0) {
-            // Ignore the entry
-
-            // Explanation :
-            // bit 0 of the Extended Attributes indicates if the entire entry should be ignored (if the bit is clear)
-
-        } else {
-            nb_entries++;
-            buffer++;
-        }
-
-    } while (continuation_val != 0 && nb_entries < nb_max_entries);
-
-    return nb_entries;
-}
 
 bool upper_memory_properties_int15_E801(upper_memory_prop_t* properties);
 
@@ -86,9 +31,9 @@ int16_t lower_memory_properties(void)
                           "movw %%ax, %[lower_mem];"
                           "movb $1, %[res];"
                           "1:"
-                          : [lower_mem] "=g" (lower_mem), // number of contiguous 1kB blocks
+                          : [lower_mem] "=o" (lower_mem), // number of contiguous 1kB blocks
                                                           // of memory before EBDA
-                            [res] "=g" (res)
+                            [res] "=o" (res)
                           :
                           : "%eax", "cc");
 
@@ -146,12 +91,11 @@ bool upper_memory_properties_int15_E801(upper_memory_prop_t* properties)
     uint16_t upper_mem_1MB_to_16MB_configured = 0;
     uint16_t upper_mem_16MB_to_4GB_configured = 0;
 
-    __asm__ __volatile__ ("push %%edx;"
-                          "clc;"
+    __asm__ __volatile__ ("clc;"
                           "movw %[bios_service_upper_mem], %%ax;"
-                          "xorw %%bx, %%bx;"
-                          "xorw %%cx, %%cx;"
-                          "xorw %%dx, %%dx;"
+                          "xorl %%ebx, %%ebx;"
+                          "xorl %%ecx, %%ecx;"
+                          "xorl %%edx, %%edx;"
                           "int $0x15;"
                           //"jc 1f;"
                           "movb %%ah, %[cmd_status];"
@@ -160,15 +104,15 @@ bool upper_memory_properties_int15_E801(upper_memory_prop_t* properties)
                           "movw %%cx, %[upper_mem_1MB_to_16MB_configured];"
                           "movw %%dx, %[upper_mem_16MB_to_4GB_configured];"
                           //"movb $1, %[res];"
-                          "1: pop %%edx;"
-                          : [cmd_status] "=g" (cmd_status),
-                            [upper_mem_1MB_to_16MB_extended] "=g" (upper_mem_1MB_to_16MB_extended),
-                            [upper_mem_16MB_to_4GB_extended] "=g" (upper_mem_16MB_to_4GB_extended),
-                            [upper_mem_1MB_to_16MB_configured] "=g" (upper_mem_1MB_to_16MB_configured),
-                            [upper_mem_16MB_to_4GB_configured] "=g" (upper_mem_16MB_to_4GB_configured)//,
-                            //[res] "=g" (succeeded)
+                          "1:"
+                          : [cmd_status] "=o" (cmd_status),
+                            [upper_mem_1MB_to_16MB_extended] "=o" (upper_mem_1MB_to_16MB_extended),
+                            [upper_mem_16MB_to_4GB_extended] "=o" (upper_mem_16MB_to_4GB_extended),
+                            [upper_mem_1MB_to_16MB_configured] "=o" (upper_mem_1MB_to_16MB_configured),
+                            [upper_mem_16MB_to_4GB_configured] "=o" (upper_mem_16MB_to_4GB_configured)//,
+                            //[res] "=o" (succeeded)
                           : [bios_service_upper_mem] "i" (0xe801)
-                          : "%eax", "%ebx", "%ecx", "cc");
+                          : "%eax", "%ebx", "%ecx", "%edx", "cc");
 
     //printf("cmd_status : 0x%x\r\n", cmd_status);
     if (cmd_status == 0x86) {

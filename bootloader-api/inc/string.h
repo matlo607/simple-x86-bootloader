@@ -9,7 +9,7 @@
  * \param[inout] str : string buffer (terminated by '\0')
  *
  * */
-extern void u16tostring(uint16_t nb, char* str, uint8_t base);
+extern void uinttostring(uint32_t nb, char* str, uint8_t base);
 
 /*
  * \brief Convert a signed integer into string.
@@ -18,7 +18,7 @@ extern void u16tostring(uint16_t nb, char* str, uint8_t base);
  * \param[out]   base : base in which to display the number
  *
  * */
-extern void s16tostring(int16_t nb, char* str, uint8_t base);
+extern void inttostring(int32_t nb, char* str, uint8_t base);
 
 /*
  * \brief Compute the length of a string.
@@ -26,7 +26,7 @@ extern void s16tostring(int16_t nb, char* str, uint8_t base);
  * \return number of bytes in the string excluding the terminating '\0'
  *
  * */
-extern uint16_t strlen(const char* str);
+extern size_t strlen(const char* str);
 
 /*
  * \brief Locate character in string.
@@ -54,7 +54,7 @@ extern char* strcpy(char* dest, const char* src);
  * \return pointer on the destination string
  *
  * */
-extern char* strncpy(char *dest, const char *src, uint16_t n);
+extern char* strncpy(char *dest, const char *src, size_t n);
 
 /*
  * \brief Reverse the bytes in a string.
@@ -62,7 +62,7 @@ extern char* strncpy(char *dest, const char *src, uint16_t n);
  * \param[in]    n   : number of bytes to reverse
  *
  * */
-extern void strnrev(char* str, uint16_t n);
+extern void strnrev(char* str, size_t n);
 
 /*
  * \brief Fill memory with a constant byte.
@@ -71,6 +71,15 @@ extern void strnrev(char* str, uint16_t n);
  * \param[in]    n   : number of bytes to set
  *
  * */
-extern void memset(void* mem, uint8_t c, uint16_t n);
+extern void memset(void* mem, uint8_t c, size_t n);
+
+/*
+ * \brief Copy n bytes from memory area src to memory area dest.
+ * \param[inout] dest : destination buffer
+ * \param[in]    src  : source buffer
+ * \param[in]    n    : number of bytes to copy
+ *
+ * */
+extern void memcpy(void *dest, const void *src, size_t n);
 
 #endif

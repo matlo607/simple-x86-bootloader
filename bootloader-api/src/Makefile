@@ -9,7 +9,7 @@ LD=$(ARCH_PREFIX)-ld
 LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
 
 CC=$(ARCH_PREFIX)-gcc
-CFLAGS=-std=c99 -DDEBUG -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -Wall -W -I$(INCDIR)
+CFLAGS=-std=c99 -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -Wall -W -I$(INCDIR)
 
 OBJCOPY=$(ARCH_PREFIX)-objcopy
 

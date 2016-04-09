@@ -95,7 +95,7 @@ registers_initialization:
     ; load segment registers
     ; %DS : data segment for the bootloader (rodata, data, bss and stack)
     ; %ES : extra data segment used to load the second stage bootloader
-    mov        ax, 0
+    xor        ax, ax
     ;mov        ax, DATA_SEGMENT
     mov        ds, ax
     ;mov        ax, EXTRA_DATA_SEGMENT

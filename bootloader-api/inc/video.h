@@ -4,13 +4,13 @@
 #include "common.h"
 
 typedef struct cursor_info_s {
-    u8 row;
-    u8 column;
-    u8 top_line;
-    u8 bottom_line;
+    uint8_t row;
+    uint8_t column;
+    uint8_t top_line;
+    uint8_t bottom_line;
 } cursor_info_t;
 
-typedef u8 video_mode_t;
+typedef uint8_t video_mode_t;
                                                      // mode      | colors                     | Resolution            | Technology
 #define VIDEO_MODE_TEXT_BW_40x25_320x200        0x00 // Text mode,  black and white,             40x25, 320x200          (CGA,EGA,MCGA,VGA)
 #define VIDEO_MODE_TEXT_16C_40x25_320x200       0x01 // Text mode,  16 colors,                   40x25, 320x200          (CGA,EGA,MCGA,VGA)
@@ -97,7 +97,7 @@ extern void video_draw_pixel(uint16_t column, uint16_t row, uint8_t color);
  *  %dh : row
  *  %dl : column
  * */
-extern void video_setcursorpos(u8 page, u8 row, u8 column);
+extern void video_setcursorpos(uint8_t page, uint8_t row, uint8_t column);
 
 /*
  * \brief Get cursor position on specified page, row and column.
@@ -112,6 +112,6 @@ extern void video_setcursorpos(u8 page, u8 row, u8 column);
  *  %ch, %cl : cursor type currently set
  *  %dh, %dl : row, column of current cursor on requested page
  * */
-extern void video_getcursorpos(u8 page, cursor_info_t* info);
+extern void video_getcursorpos(uint8_t page, cursor_info_t* info);
 
 #endif

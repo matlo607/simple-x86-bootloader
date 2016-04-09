@@ -23,7 +23,7 @@ LD=$(ARCH_PREFIX)-ld
 LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
 
 CC=$(ARCH_PREFIX)-gcc
-CFLAGS=-std=c99 -DDEBUG -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH)
+CFLAGS=-std=c99 -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH)
 
 OBJDUMP=$(ARCH_PREFIX)-objdump
 OBJCOPY=$(ARCH_PREFIX)-objcopy

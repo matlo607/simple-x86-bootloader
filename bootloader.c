@@ -3,43 +3,50 @@
  **********************************************/
 
 #include "common.h"
-#include "system.h"
+#include "cpu.h"
+#include "sys.h"
 #include "time.h"
 #include "video.h"
 #include "memory.h"
-#include "screen.h"
-#include "keyboard.h"
+#include "io.h"
+#include "string.h"
 #include "graphics.h"
 #include "disk.h"
-#include "string.h"
+#include "e820.h"
+#include "equipment.h"
+#include "malloc.h"
 
-#define BOOTLOADER_RELEASE_MODE "alpha"
-#define BOOTLOADER_VERSION      0
-#define BOOTLOADER_REVISION     1
+#define keyboard_waitkeystroke()    getc()
 
-SMAP_entry_t memory_mapping[20];
+void setup_env(void)
+{
+    heap_init();
+}
 
 void main(void)
 {
-    // detach printing of stage 1 from stage 0
-    prints("\r\n");
+    setup_env();
 
-    printf("Welcome in bootloader %s v%u.%u, stage1\r\n",
+    // detach printing of stage 1 from stage 0
+    puts("\r\n");
+
+    printf("Welcome in bootloader %s release v%u.%u, stage1\r\n",
             BOOTLOADER_RELEASE_MODE,
             BOOTLOADER_VERSION,
             BOOTLOADER_REVISION);
 
+
     video_state_t video_state;
     video_getstate(&video_state);
-    printf("Video state :\r\n" \
-           "-------------\r\n" \
-           "Mode: 0x%x\r\n" \
-           "Active page: %d\r\n"\
-           "Number of character columns: %d\r\n\r\n",
-           video_state.mode, video_state.page, video_state.char_column_nb);
 
-    equipment_info_t equipment = equipment_get_info();
-    equipment_print_info(equipment);
+    printf("Video state :\r\n" \
+            "-------------\r\n" \
+            "Mode: 0x%x\r\n" \
+            "Active page: %d\r\n"\
+            "Number of character columns: %d\r\n\r\n",
+            video_state.mode, video_state.page, video_state.char_column_nb);
+
+    int11_detect_equipment(&system_info.int11_equipments);
 
     keyboard_waitkeystroke();
 
@@ -67,13 +74,13 @@ void main(void)
         printf("Boot from floppy (0x%x)\r\n", boot_drive_nb);
     }
 
-    int16_t lower_memory = 0;
+    ssize_t lower_memory = 0;
     if ((lower_memory = lower_memory_properties()) < 0) {
-        prints("Fail to get the size of lower memory\r\n");
+        puts("Fail to get the size of lower memory\r\n");
         goto fatal_failure;
     }
 
-    printf("Low memory: %uKB\r\n", lower_memory);
+    printf("Low memory: %dKB\r\n", lower_memory);
 
     upper_memory_prop_t upper_memory;
     if (!upper_memory_properties(&upper_memory)) {
@@ -83,34 +90,44 @@ void main(void)
     printf("Upper memory: %uKB [0x%x] (maximum 15MB [0x3c00])\r\n", upper_memory._1MB_to_16MB, upper_memory._1MB_to_16MB);
     printf("              %uKB [0x%x] (%uMB)\r\n", upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB / 1024);
 
-
-    int16_t nb_entries = memory_map_int15_E820(memory_mapping, 20);
-    if (nb_entries == -1) {
+    system_info.e820_smap_nbentries = e820_detect_mem(system_info.e820_smap, 20);
+    if (system_info.e820_smap_nbentries == -1) {
         printf("Error while mapping memory with int 15h, 0xe820\r\n");
     } else {
-        printf("Memory map (nb entries = %d)\r\n", nb_entries);
+        printf("Memory map (nb entries = %d)\r\n", system_info.e820_smap_nbentries);
+        e820_display_SMAP_entries(system_info.e820_smap, system_info.e820_smap_nbentries);
     }
 
-    prints("Reset disk controller: ");
+    puts("Reset disk controller: ");
     if (disk_reset(boot_drive_nb)) {
-        prints("succeeded\r\n");
+        puts("succeeded\r\n");
     } else {
-        prints("failed\r\n");
+        puts("failed\r\n");
         goto fatal_failure;
     }
 
-    //printf("read boot0 ...\r\n");
-    //uint8_t nb_read_sectors = disk_read_sectors(boot_drive_nb, 0x8000, 0x0000, 0, 0, 1);
-    //printf("number of read sectors : %u\r\n", nb_read_sectors);
+    puts("read boot0 ...\r\n");
+    uint8_t* sector_buffer = malloc(512 * sizeof(uint8_t));
 
-    //uint16_t* p_signature = (uint16_t*)0x801ff;
-    //printf("boot signature = 0x%h\r\n", p_signature);
+    uint16_t reg_ds = 0;
+    reg_get_data_segment(&reg_ds);
+    //__asm__ __volatile__("movw %%ds, %[val];" : [val] "=g" (reg_ds) : : );
+
+    uint8_t nb_sectors_to_read = 1;
+    uint8_t nb_read_sectors = disk_read_sectors(boot_drive_nb, reg_ds, (uint16_t)((uint32_t)sector_buffer), 0, 0, 1, nb_sectors_to_read);
+    if (nb_read_sectors != nb_sectors_to_read) {
+        printf("disk_read_sectors error : read %u sectors instead of %u\r\n", nb_read_sectors, nb_sectors_to_read);
+    }
+
+    // get boot signature
+    uint16_t* p_signature = (uint16_t*) (sector_buffer + 0x01fe);
+    printf("boot signature = 0x%x\r\n", *p_signature);
 
 fatal_failure:
-    prints("Wait forever ...");
+    puts("Wait forever ...");
     wait_forever();
 
-    prints("Press any key to reboot");
+    puts("Press any key to reboot");
     keyboard_waitkeystroke();
     //reboot();
 }

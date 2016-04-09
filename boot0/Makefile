@@ -21,7 +21,7 @@ LD=$(ARCH_PREFIX)-ld
 LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
 
 CC=$(ARCH_PREFIX)-gcc
-CFLAGS=-std=c99 -DDEBUG -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH)
+CFLAGS=-std=c99 -O1 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH)
 
 OBJDUMP=$(ARCH_PREFIX)-objdump
 OBJCOPY=$(ARCH_PREFIX)-objcopy
@@ -53,10 +53,11 @@ BIN= $(ELF:.elf=.bin)
 all: $(BIN)
 
 
-BOOT1_BOOTLOADER_API_DEP=$(BOOTLOADER_API_OBJ_PATH)/keyboard.o \
-						 $(BOOTLOADER_API_OBJ_PATH)/screen.o \
+BOOT1_BOOTLOADER_API_DEP=$(BOOTLOADER_API_OBJ_PATH)/io.o \
 						 $(BOOTLOADER_API_OBJ_PATH)/string.o \
-						 $(BOOTLOADER_API_OBJ_PATH)/system.o
+						 $(BOOTLOADER_API_OBJ_PATH)/malloc.o \
+						 $(BOOTLOADER_API_OBJ_PATH)/time.o \
+						 $(BOOTLOADER_API_OBJ_PATH)/assert.o
 
 boot0.elf: boot0.o
 boot1_dummy.elf: $(BOOT1_BOOTLOADER_API_DEP) boot1_bootstrap.o boot1_dummy.o

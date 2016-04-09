@@ -1,10 +1,10 @@
-#include "system.h"
+#include "equipment.h"
 
-#ifdef DEBUG
+#include "io.h"
+#include "assert.h"
 
-#include "screen.h"
-#include "keyboard.h"
-
+static equipment_info_t equipment_get_info(void);
+static void equipment_print_info(equipment_info_t equipement);
 
 equipment_info_t equipment_get_info(void)
 {
@@ -20,7 +20,6 @@ equipment_info_t equipment_get_info(void)
 
     return field;
 }
-
 
 void equipment_print_info(equipment_info_t equipment)
 {
@@ -65,16 +64,10 @@ void equipment_print_info(equipment_info_t equipment)
     printf("Number of parallel adapters: %u\r\n", equipment.nb_parallel_adapters);
 }
 
-void assert(bool cond, const char* error_msg)
+void int11_detect_equipment(equipment_info_t* equipment)
 {
-    if (!cond) {
-        printf("assertion failure: %s\r\n", error_msg);
-        //halt_cpu();
+    assert(equipment != NULL, "int11_detect_equipment: null pointer");
 
-        prints("Press any key to reboot");
-        keyboard_waitkeystroke();
-        reboot();
-    }
+    *equipment = equipment_get_info();
+    equipment_print_info(*equipment);
 }
-
-#endif

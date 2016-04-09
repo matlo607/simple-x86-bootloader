@@ -1,5 +1,6 @@
 #include "video.h"
-#include "system.h"
+
+#include "assert.h"
 
 void video_setmode(video_mode_t mode)
 {
@@ -50,7 +51,7 @@ void video_draw_pixel(uint16_t column, uint16_t row, uint8_t color)
             );
 }
 
-void video_getcursorpos(u8 page, cursor_info_t* info)
+void video_getcursorpos(uint8_t page, cursor_info_t* info)
 {
     if (info) {
         __asm__ __volatile__ (
@@ -76,7 +77,7 @@ void video_getcursorpos(u8 page, cursor_info_t* info)
     }
 }
 
-void video_setcursorpos(u8 page, u8 row, u8 column)
+void video_setcursorpos(uint8_t page, uint8_t row, uint8_t column)
 {
     __asm__ __volatile__ ("movb %[bios_service_set_cursor_pos], %%ah;"
                           "movb %[page], %%bh;"

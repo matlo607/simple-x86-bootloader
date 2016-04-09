@@ -1,9 +1,10 @@
 #include "string.h"
+#include "assert.h"
 
-void u16tostring(uint16_t nb, char* str, uint8_t base)
+void uinttostring(uint32_t nb, char* str, uint8_t base)
 {
-    uint16_t quotient;
-    uint16_t remaining;
+    uint32_t quotient;
+    uint32_t remaining;
     uint8_t nbdigits = 0;
 
     do {
@@ -24,7 +25,7 @@ void u16tostring(uint16_t nb, char* str, uint8_t base)
     str[nbdigits] = '\0';
 }
 
-void s16tostring(int16_t nb, char* str, uint8_t base)
+void inttostring(int32_t nb, char* str, uint8_t base)
 {
     if (nb < 0) {
         str[0] = '-';
@@ -32,12 +33,12 @@ void s16tostring(int16_t nb, char* str, uint8_t base)
         nb = -nb;
     }
 
-    u16tostring(nb, str, base);
+    uinttostring(nb, str, base);
 }
 
-uint16_t strlen(const char* str)
+size_t strlen(const char* str)
 {
-    uint16_t count = 0;
+    size_t count = 0;
 
     while (*str) {
         ++str;
@@ -49,6 +50,8 @@ uint16_t strlen(const char* str)
 
 const char* strchr(const char* str, char c)
 {
+    assert(str != NULL, "cannot search an occurrence in a null string");
+
     while (*str != c && *str != '\0') {
         ++str;
     }
@@ -74,9 +77,9 @@ char* strcpy(char* dest, const char* src)
     return dest;
 }
 
-char* strncpy(char *dest, const char *src, uint16_t n)
+char* strncpy(char *dest, const char *src, size_t n)
 {
-    uint16_t i = 0;
+    size_t i = 0;
     for (; i < n && src[i] != '\0'; ++i) {
         dest[i] = src[i];
     }
@@ -85,7 +88,7 @@ char* strncpy(char *dest, const char *src, uint16_t n)
     return dest;
 }
 
-void strnrev(char* str, uint16_t n)
+void strnrev(char* str, size_t n)
 {
     char* str_end = &str[n-1];
     char tmp;
@@ -100,10 +103,20 @@ void strnrev(char* str, uint16_t n)
     }
 }
 
-void memset(void* mem, uint8_t c, uint16_t n)
+void memset(void* mem, uint8_t c, size_t n)
 {
-    for (uint16_t i = 0; i < n; ++i) {
-        ((uint8_t*) mem)[i] = c;
+    if (mem != NULL) {
+        for (size_t i = 0; i < n; ++i) {
+            ((uint8_t*) mem)[i] = c;
+        }
     }
 }
 
+void memcpy(void *dest, const void *src, size_t n)
+{
+    if (src != NULL) {
+        for (size_t i = 0; i < n; ++i) {
+            ((uint8_t*) dest)[i] = ((uint8_t*) src)[i];
+        }
+    }
+}

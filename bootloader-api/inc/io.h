@@ -1,12 +1,37 @@
-#ifndef _BIOS_INPUT_OUTPUT
-#define _BIOS_INPUT_OUTPUT
+#ifndef _IO_H
+#define _IO_H
 
 #include "common.h"
 
 /*
- * \brief Print a character on the active page a certain number of times.
+ * \brief Get a character from keyboard.
+ *
+ * \return character read from keyboard
+ *
+ * BIOS interrupt: 0x16
+ * service:        0x01 and 0x00
+ *
+ * Internal registers :
+ *  %al : character read from keyboard buffer
+ * */
+extern char getc(void);
+
+/*
+ * \brief Read a string from keyboard.
+ * \param[in] buf   : buffer to store the string (a null-pointer check is performed)
+ * \param[in] len   : length of the buffer
+ * \param[in] delim : delimiter to stop reading from keyboard buffer
+ *
+ * \return number of characters read from keyboard
+ * */
+extern size_t getdelim(char* buf, size_t len, char delim, bool verbose);
+
+#define getline(buf, len) \
+    getdelim(buf, len, '\r', true)
+
+/*
+ * \brief Print a character on the active page.
  * \param[in] c     : character
- * \param[in] count : count of characters to be printed
  *
  * BIOS interrupt: 0x10
  * service:        0x0e
@@ -15,7 +40,7 @@
  *  %al : character to be written
  *  %bl : color in graphic mode
  * */
-extern void printc(char c, uint16_t count);
+extern void putc(char c);
 
 /*
  * \brief Print a string onto the active page until the character specified in
@@ -31,14 +56,19 @@ extern void printc(char c, uint16_t count);
  *  %bl : color in graphic mode
  *  %bh : page number
  * */
-extern void printstrc(const char* str, char c);
+extern void putsndelim(const char* str, size_t n, char c);
 
 /*
  * \brief Print a string terminated by a NULL character onto the active page.
  * \param[in] STR : pointer on the string to print
  *
  * */
-#define prints(STR)     printstrc(STR, '\0')
+#define putsn(str, n)   putsndelim(str, n, '\0')
+
+extern void putsdelim(const char* str, char c);
+
+#define puts(str)       putsdelim(str, '\0')
+
 
 /*
  * \brief Print the n first characters of a string onto the active page unless
@@ -54,7 +84,7 @@ extern void printstrc(const char* str, char c);
  *  %bl : color in graphic mode
  *  %bh : page number
  * */
-extern void printstrn(const char* str, uint16_t n);
+//extern void printstrn(const char* str, size_t n);
 
 /*
  * \brief Print a string according to the pattern specified in the format.
@@ -64,10 +94,13 @@ extern void printstrn(const char* str, uint16_t n);
  * */
 extern void printf(const char* format, ...);
 
+
+#ifdef DEBUG
 /*
  * \brief Macro enabled only if DEBUG has been defined. The behavior is exactly the same
  * than printf().
  * */
-#define debug_printf(fmt, ...) do { if (DEBUG) printf(fmt, ##__VA_ARGS__); } while (0)
+#define debug_printf(fmt, ...) do { if (DEBUG_ON) printf(fmt, ##__VA_ARGS__); } while (0)
+#endif
 
 #endif

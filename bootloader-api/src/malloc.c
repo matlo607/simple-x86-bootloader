@@ -1,54 +1,72 @@
-#include "mem.h"
+#include "malloc.h"
 
-#include "screen.h"
+#include "io.h"
 #include "string.h"
 
 
 typedef struct heap_node_s heap_node_t;
 struct heap_node_s {
     heap_node_t* next;
-    uint16_t     size;
+    size_t       size;
     bool         used;
 };
+
 
 // Address of heap's beginning (defined in the linker script)
 extern heap_node_t heap_addr_begin;
 
-static heap_node_t* heap_list = NULL;
-
-
-#ifdef DEBUG
-void debug_print_node(const heap_node_t* node)
-{
-    if (node) {
-        printf("node = 0x%x :    next = 0x%x, used = %b, size = %u\r\n", node, node->next, node->used, node->size);
-    }
-}
-#endif
+static heap_node_t* const heap_list = &heap_addr_begin;
 
 
 /*
- * \brief Allocate a memory area of the given size.
- * \param[in] size : size of the requested memory
- *
- * \return a pointer on the allocated memory
+ * DEBUG functions
  * */
-void* malloc(uint16_t size)
+#ifdef DEBUG_HEAP
+
+void debug_print_node(const heap_node_t* node)
 {
-    // first time asking memory : initialize the heap structure
-    if (heap_list == NULL) {
-        heap_list = &heap_addr_begin;
+    debug_printf("HEAP: \tnode = 0x%x (next = 0x%x, mem = 0x%x, used = %b, size = %u)\r\n",
+            node,
+            node + 1,
+            node->next,
+            node->used,
+            node->size);
+}
 
-        heap_list->next = NULL;
-        heap_list->used = false;
-        heap_list->size = HEAP_MAX_SIZE - sizeof(heap_node_t);
-    }
+#endif
 
+
+void heap_init(void)
+{
+    heap_list->next = NULL;
+    heap_list->used = false;
+    heap_list->size = HEAP_MAX_SIZE - sizeof(heap_node_t);
+
+#ifdef DEBUG_HEAP
+    debug_printf("HEAP: start=0x%x, size=%u\r\n", heap_list, heap_list->size);
+#endif
+}
+
+void* malloc(size_t size)
+{
     void* allocated_mem = NULL;
     heap_node_t* current_node = heap_list;
 
+#ifdef DEBUG_HEAP
+    debug_printf("HEAP: look for a memory area with at least %u bytes available\r\n", size);
+#endif
+
     while (current_node != NULL) {
+
+#ifdef DEBUG_HEAP
+        debug_print_node(current_node);
+#endif
+
         if ( (!current_node->used) && (current_node->size >= size) ) {
+
+#ifdef DEBUG_HEAP
+            debug_printf("HEAP: available memory at node 0x%x\r\n", current_node);
+#endif
 
             // set allocated_mem without forgetting the offset (size of a heap_list element)
             allocated_mem = current_node + 1;
@@ -56,6 +74,7 @@ void* malloc(uint16_t size)
             // check if the free area is able to make fit the required memory and also,
             // another node and at least 1 byte (otherwise the node is useless)
             if (current_node->size > size + sizeof(heap_node_t)) {
+
                 // create a new node
                 heap_node_t* next_node = (heap_node_t*) (allocated_mem + size);
                 next_node->used = false;
@@ -70,10 +89,19 @@ void* malloc(uint16_t size)
 
                 current_node->next = next_node;
                 current_node->size = size;
+
+#ifdef DEBUG_HEAP
+                debug_printf("HEAP: create a new node after the newly allocated memory\r\n");
+                debug_print_node(next_node);
+#endif
             }
             // else just use this node and let the size as it is
 
             current_node->used = true;
+#ifdef DEBUG_HEAP
+            debug_printf("HEAP: update the current node\r\n");
+            debug_print_node(current_node);
+#endif
             break;
 
         } else {
@@ -81,10 +109,16 @@ void* malloc(uint16_t size)
         }
     }
 
+#ifdef DEBUG_HEAP
+    if (allocated_mem == NULL) {
+        debug_printf("HEAP: no memory available, malloc() failed\r\n");
+    }
+#endif
+
     return allocated_mem;
 }
 
-void* calloc(uint16_t nmemb, uint16_t size)
+void* calloc(size_t nmemb, size_t size)
 {
     void* mem = malloc(nmemb * size);
 
@@ -95,7 +129,7 @@ void* calloc(uint16_t nmemb, uint16_t size)
     return mem;
 }
 
-void* realloc(void *ptr, uint16_t size)
+void* realloc(void *ptr, size_t size)
 {
     heap_node_t* current_node = heap_list;
     void* ptr_mem = NULL;
@@ -114,8 +148,12 @@ void* realloc(void *ptr, uint16_t size)
 
             if (size > current_node->size) {
                 // reallocate a more important memory
-                free(ptr);
                 ptr = malloc(size);
+                // copy all the data into the new memory area
+                memcpy(ptr, ptr_mem, current_node->size);
+
+                // free the previously allocated memory area
+                free(ptr_mem);
             }
             // else {
             //    // do not change anything
