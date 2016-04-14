@@ -91,13 +91,44 @@ void printf(const char* format, ...)
     const char* mark;
     const char* str_start = format;
     char var_format;
+    bool flag_showbase;
+    bool flag_zerofill;
+    int8_t width;
 
     char buf_nbtostring[20];
 
     // parse format string looking for '%' character
     while ((mark = strchr(str_start, '%')) != NULL) {
 
+        flag_showbase = false;
+        flag_zerofill = false;
+        width = -1; // -1 means "just displays a number according to
+                    // its most significant bit different of zero"
+
         var_format = *(++mark);
+
+        // check flags
+        if (var_format == '#') {
+            flag_showbase = true;
+            var_format = *(++mark);
+        }
+
+        if (var_format == '0') {
+            flag_zerofill = true;
+            var_format = *(++mark);
+
+            // check width (maximum 10 numbers)
+            width = 0;
+            while (var_format <= '9' && var_format >= '0' && width < 10) {
+                width += (var_format - 48);
+                var_format = *(++mark);
+            }
+
+            if (width == 0) {
+                width = -1;
+                flag_zerofill = false;
+            }
+        }
 
         switch (var_format) {
             case 's':
@@ -123,6 +154,14 @@ void printf(const char* format, ...)
                     putsdelim(str_start, '%');
                     str_start = ++mark;
 
+                    if (flag_zerofill) {
+                        size_t nchars = strlen(buf_nbtostring);
+                        size_t nbzeros = width - nchars;
+                        for (size_t i=0; i<nbzeros; ++i) {
+                            putc('0');
+                        }
+                    }
+
                     puts(buf_nbtostring);
 
                     break;
@@ -135,6 +174,14 @@ void printf(const char* format, ...)
 
                     putsdelim(str_start, '%');
                     str_start = ++mark;
+
+                    if (flag_zerofill) {
+                        size_t nchars = strlen(buf_nbtostring);
+                        size_t nbzeros = width - nchars;
+                        for (size_t i=0; i<nbzeros; ++i) {
+                            putc('0');
+                        }
+                    }
 
                     puts(buf_nbtostring);
 
@@ -150,6 +197,18 @@ void printf(const char* format, ...)
                     putsdelim(str_start, '%');
                     str_start = ++mark;
 
+                    if (flag_showbase) {
+                        puts("0x");
+                    }
+
+                    if (flag_zerofill) {
+                        size_t nchars = strlen(buf_nbtostring);
+                        size_t nbzeros = width - nchars;
+                        for (size_t i=0; i<nbzeros; ++i) {
+                            putc('0');
+                        }
+                    }
+
                     puts(buf_nbtostring);
 
                     break;
@@ -162,6 +221,18 @@ void printf(const char* format, ...)
 
                     putsdelim(str_start, '%');
                     str_start = ++mark;
+
+                    if (flag_showbase) {
+                        puts("1'b");
+                    }
+
+                    if (flag_zerofill) {
+                        size_t nchars = strlen(buf_nbtostring);
+                        size_t nbzeros = width - nchars;
+                        for (size_t i=0; i<nbzeros; ++i) {
+                            putc('0');
+                        }
+                    }
 
                     puts(buf_nbtostring);
 
@@ -182,8 +253,11 @@ void printf(const char* format, ...)
 
             case '%':
                 {
-                    putc('%');
+                    putsdelim(str_start, '%');
                     str_start = ++mark;
+
+                    putc('%');
+
                     break;
                 }
 
