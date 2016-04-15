@@ -25,6 +25,9 @@ typedef uint8_t     bool;
 typedef uint32_t     size_t;
 typedef int32_t      ssize_t;
 
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE -1
+
 #define NULL    0
 
 #endif
