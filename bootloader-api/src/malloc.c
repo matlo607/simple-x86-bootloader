@@ -2,6 +2,7 @@
 
 #include "io.h"
 #include "string.h"
+#include "config_mem.h"
 
 
 typedef struct heap_node_s heap_node_t;

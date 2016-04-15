@@ -21,6 +21,11 @@ REGION_ALIAS("REGION_BSS", segment_data);
 
 SECTIONS{
 
+    /DISCARD/ : {
+        *(.note*)
+        *(.comment*)
+    }
+
     /*
      * CODE SEGMENT (64KB - 0x1000)
      **/

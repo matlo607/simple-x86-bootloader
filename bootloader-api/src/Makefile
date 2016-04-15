@@ -2,7 +2,10 @@ ARCH_PREFIX=i386-elf
 
 INCDIR=../inc
 
-ASM=nasm
+AS=$(ARCH_PREFIX)-as
+ASFLAGS=-c -march=i386 -fno-asynchronous-unwind-tables -W -I$(INCDIR)
+
+NASM=nasm
 NASMFLAGS=-O0 -f elf32
 
 LD=$(ARCH_PREFIX)-ld
@@ -13,9 +16,11 @@ CFLAGS=-std=c99 -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-
 
 OBJCOPY=$(ARCH_PREFIX)-objcopy
 
-SRC_ASM= $(wildcard *.asm)
+SRC_NASM= $(wildcard *.asm)
+SRC_GAS= $(wildcard *.S)
 SRC_C= $(wildcard *.c)
 OBJ= $(SRC_ASM:.asm=.o)
+OBJ+= $(SRC_GAS:.S=.o)
 OBJ+= $(SRC_C:.c=.o)
 
 all: $(OBJ)
@@ -24,8 +29,11 @@ all: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $<
 
 %.o: %.asm
-	$(ASM) $(NASMFLAGS) -o $@ -l $*.lst $<
+	$(NASM) $(NASMFLAGS) -o $@ -l $*.lst $<
+
+%.o: %.S
+	$(AS) $(ASFLAGS) -o $@ $<
 
 clean:
-	-rm -f *.o
+	-rm -f *.o *.lst
 

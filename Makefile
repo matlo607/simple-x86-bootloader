@@ -16,7 +16,10 @@ BOOT0_DIR=./boot0
 ## TOOLS AND FLAGS ##
 #####################
 
-ASM=nasm
+AS=$(ARCH_PREFIX)-gcc
+ASFLAGS=-c -march=i386 -ffreestanding -fno-asynchronous-unwind-tables -W -I$(BOOTLOADER_API_INC_PATH)
+
+NASM=nasm
 NASMFLAGS=-O0 -f elf32
 
 LD=$(ARCH_PREFIX)-ld
@@ -41,13 +44,21 @@ ELF_STAGE0=$(BOOT0_DIR)/boot0.elf
 ELF_STAGE1=bootloader.elf
 
 
-SRC_ASM= $(wildcard *.asm)
+SRC_NASM= $(wildcard *.asm)
+SRC_GAS= $(wildcard *.S)
 SRC_C= $(wildcard *.c)
+
+SRC_API_NASM= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.asm)
+SRC_API_GAS= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.S)
 SRC_API_C= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.c)
 
-OBJ= $(SRC_ASM:.asm=.o)
+OBJ= $(SRC_NASM:.asm=.o)
+OBJ+= $(SRC_GAS:.S=.o)
 OBJ+= $(SRC_C:.c=.o)
-OBJ_API= $(SRC_API_C:.c=.o)
+
+OBJ_API= $(SRC_API_NASM:.asm=.o)
+OBJ_API+= $(SRC_API_GAS:.S=.o)
+OBJ_API+= $(SRC_API_C:.c=.o)
 
 ELF= $(ELF_STAGE0) $(ELF_STAGE1)
 BIN= $(ELF:.elf=.bin)
@@ -70,11 +81,14 @@ $(ELF_STAGE1): $(OBJ_API) bootstrap.o bootloader.o
 %.o: %.asm
 	$(ASM) $(NASMFLAGS) -o $@ -l $*.lst $<
 
+%.o: %.S
+	$(AS) $(ASFLAGS) -o $@ $<
+
 %.elf: %.o
 	$(LD) $(LDFLAGS) -T$*.ld -o $@ $^
 
 %.bin: %.elf
-	$(OBJCOPY) --remove-section=.comment -O binary $< $@
+	$(OBJCOPY) --remove-section=.comment --remove-section=.note -O binary $< $@
 
 $(IMG): $(BIN)
 	cat $^ /dev/zero | dd of=$@ bs=512 count=2880

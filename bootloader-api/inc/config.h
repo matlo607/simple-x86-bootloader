@@ -12,12 +12,6 @@
 #define BOOTLOADER_VERSION        0
 #define BOOTLOADER_REVISION       1
 
-
-/*
- * Memory configuration
- * */
-#define HEAP_MAX_SIZE           4096 // 4kB
-
 /*
  * Debug params
  * */

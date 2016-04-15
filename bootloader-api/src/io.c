@@ -4,18 +4,28 @@
 #include "assert.h"
 #include "time.h"
 #include "string.h"
-
+#include "bios.h"
 
 char getc(void)
 {
     char user_input;
 
-    __asm__ __volatile__("movb %[bios_service_read_buffer], %%ah;"
-                         "int $0x16;"
-                         : "=a" (user_input)
-                         : [bios_service_read_buffer] "i" (0x00)
-                         : "cc"
-                         );
+    //__asm__ __volatile__("movb %[bios_service_read_buffer], %%ah;"
+    //                     "int $0x16;"
+    //                     : "=a" (user_input)
+    //                     : [bios_service_read_buffer] "i" (0x00)
+    //                     : "cc"
+    //                     );
+
+    x86_regs_t regs_in, regs_out;
+
+    x86_regs_init(&regs_in);
+
+    regs_in.A._Rh = 0x00;
+
+    bioscall(0x16, &regs_in, &regs_out);
+
+    user_input = regs_out.A._Rl;
 
     return user_input;
 }
@@ -52,16 +62,26 @@ size_t getdelim(char* buf, size_t len, char delim, bool verbose)
 
 void putc(char c)
 {
-    __asm__ __volatile__ ("movb %[bios_service_print_char_active_page], %%ah;"
-                          "movb %[char_to_print], %%al;"
-                          "movb %[color], %%bl;"
-                          "int $0x10;"
-                          :
-                          : [bios_service_print_char_active_page] "i" (0x0e),
-                          [char_to_print] "o" (c),
-                          [color] "i" (0x07)
-                          : "%eax", "%ebx"
-                          );
+    //__asm__ __volatile__ ("movb %[bios_service_print_char_active_page], %%ah;"
+    //                      "movb %[char_to_print], %%al;"
+    //                      "movb %[color], %%bl;"
+    //                      "int $0x10;"
+    //                      :
+    //                      : [bios_service_print_char_active_page] "i" (0x0e),
+    //                      [char_to_print] "o" (c),
+    //                      [color] "i" (0x07)
+    //                      : "%eax", "%ebx"
+    //                      );
+
+    x86_regs_t regs_in, regs_out;
+
+    x86_regs_init(&regs_in);
+
+    regs_in.A._Rl = c;
+    regs_in.B._Rl = 0x07;
+    regs_in.A._Rh = 0x0e;
+
+    bioscall(0x10, &regs_in, &regs_out);
 }
 
 void putsndelim(const char* str, size_t n, char c)

@@ -14,14 +14,17 @@ BOOTLOADER_API_OBJ_PATH=$(BOOTLOADER_API_DIR)/src
 ## TOOLS AND FLAGS ##
 #####################
 
-ASM=nasm
+AS=$(ARCH_PREFIX)-gcc
+ASFLAGS=-c -march=i386 -ffreestanding -fno-asynchronous-unwind-tables -W -I$(BOOTLOADER_API_INC_PATH)
+
+NASM=nasm
 NASMFLAGS=-O0 -f elf32
 
 LD=$(ARCH_PREFIX)-ld
 LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
 
 CC=$(ARCH_PREFIX)-gcc
-CFLAGS=-std=c99 -O1 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH)
+CFLAGS=-std=c99 -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH)
 
 OBJDUMP=$(ARCH_PREFIX)-objdump
 OBJCOPY=$(ARCH_PREFIX)-objcopy
@@ -38,11 +41,13 @@ ELF_STAGE0=boot0.elf
 ELF_STAGE1=boot1_dummy.elf
 
 
-SRC_ASM= $(wildcard *.asm)
+SRC_NASM= $(wildcard *.asm)
+SRC_GAS= $(wildcard *.S)
 SRC_C= $(wildcard *.c)
 SRC_API_C= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.c)
 
-OBJ= $(SRC_ASM:.asm=.o)
+OBJ= $(SRC_NASM:.asm=.o)
+OBJ+= $(SRC_GAS:.S=.o)
 OBJ+= $(SRC_C:.c=.o)
 OBJ_API= $(SRC_API_C:.c=.o)
 
@@ -57,6 +62,8 @@ BOOT1_BOOTLOADER_API_DEP=$(BOOTLOADER_API_OBJ_PATH)/io.o \
 						 $(BOOTLOADER_API_OBJ_PATH)/string.o \
 						 $(BOOTLOADER_API_OBJ_PATH)/malloc.o \
 						 $(BOOTLOADER_API_OBJ_PATH)/time.o \
+						 $(BOOTLOADER_API_OBJ_PATH)/bioscall.o \
+						 $(BOOTLOADER_API_OBJ_PATH)/x86_regs.o \
 						 $(BOOTLOADER_API_OBJ_PATH)/assert.o
 
 boot0.elf: boot0.o
@@ -76,13 +83,16 @@ $(OBJ_API):
 	$(CC) $(CFLAGS) -o $@ $<
 
 %.o: %.asm
-	$(ASM) $(NASMFLAGS) -o $@ -l $*.lst $<
+	$(NASM) $(NASMFLAGS) -o $@ -l $*.lst $<
+
+%.o: %.S
+	$(AS) $(ASFLAGS) -o $@ $<
 
 %.elf: %.o
 	$(LD) $(LDFLAGS) -T$*.ld -o $@ $^
 
 %.bin: %.elf
-	$(OBJCOPY) --remove-section=.comment -O binary $< $@
+	$(OBJCOPY) --remove-section=.comment --remove-section=.note -O binary $< $@
 
 $(IMG): $(BIN)
 	cat $^ /dev/zero | dd of=$@ bs=512 count=2880

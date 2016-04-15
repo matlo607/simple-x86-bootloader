@@ -1,0 +1,91 @@
+[bits 16]
+
+global bioscall
+
+bioscall:
+    push WORD bp
+    mov  WORD bp, sp
+
+    ; save current values of the registers
+    push DWORD ebx
+    push DWORD ecx
+    push DWORD edx
+    push DWORD edi
+    push DWORD esi
+    push WORD ds
+    push WORD es
+
+    mov  ax, [bp + 0x06] ; get the interrupt number
+    push WORD ds
+    mov  bx, cs
+    mov  ds, bx
+    mov  [.OPCODE_INTNO], al
+    pop  WORD ds
+
+    mov  si, [bp + 0x0a] ; get the pointer on const x86_regs_t* regs_in
+
+    mov  ax, [si]
+    mov  ds, ax
+    mov  ax, [si + 0x02]
+    mov  es, ax
+    ; mov  ax, [si + 0x04]
+    ; mov  fs, ax
+    ; mov  ax, [si + 0x06]
+    ; mov  gs, ax
+
+    mov  DWORD ebp, [si + 0x08]
+    mov  DWORD eax, [si + 0x0c]
+    mov  DWORD ebx, [si + 0x10]
+    mov  DWORD ecx, [si + 0x14]
+    mov  DWORD edx, [si + 0x18]
+    ; skip eflags (output value)
+    mov  DWORD edi, [si + 0x20]
+    mov  DWORD esi, [si + 0x24]
+
+    ;-------------------
+    ; call bios interupt
+    ;-------------------
+.bios_int_call:
+    .OPCODE_INT      db   0xCD ; op code for 'int'
+    .OPCODE_INTNO    db   0    ; interrupt number : default 0
+.bios_int_call_end:
+
+    ; save eflags, %edi and %ebp on stack
+    pushfd
+    push   DWORD edi
+    push   bp
+
+    ; restore %ebp so that we can access the arguments
+    mov  bp, sp
+    lea  di, [bp + 0x22]
+
+    ; get the pointer on x86_regs_t* regs_out
+    mov  di, [bp + 0x0e]
+
+    mov  DWORD [di + 0x0c], eax 
+    mov  DWORD [di + 0x10], ebx 
+    mov  DWORD [di + 0x14], ecx 
+    mov  DWORD [di + 0x18], edx 
+    ; %ebp
+    xor  eax,eax
+    pop  WORD ax
+    mov  DWORD [di + 0x08], eax
+    ; %edi
+    pop  DWORD eax
+    mov  DWORD [di + 0x20], eax
+    mov  DWORD [di + 0x24], esi
+
+    ; return eflags in %eax, and also write them in regs_out
+    pop  DWORD eax
+    mov  DWORD [di + 0x1c], eax
+
+    pop  WORD es
+    pop  WORD ds
+    pop  DWORD esi
+    pop  DWORD edi
+    pop  DWORD edx
+    pop  DWORD ecx
+    pop  DWORD ebx
+
+    pop  WORD bp
+    ret
