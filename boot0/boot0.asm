@@ -158,30 +158,30 @@ read_boot1_from_drive:
     ; %cl <-- 2,1
     mov        dh, 0                        ; head number = 0
 .read_C0_H0_S2_to_S18:
-    mov        al, BOOT1_HEAD0_CYLINDER0_NB_SECTORS
+    mov        al, 35;BOOT1_HEAD0_CYLINDER0_NB_SECTORS
     mov        bx, BOOT1_START_ADDR ; address of buffer --> EXTRA_DATA_SEGMENT:new_offset_sector
     mov        cx, 0x0002           ; track number = 0, sector number = 2
     jmp        .read_bios_call
 
-.read_C1_H0_S1_to_S18:
-    mov        al, BOOT1_HEAD0_CYLINDER1_NB_SECTORS
-    mov        bx, (BOOT1_START_ADDR + 512*17) ; address of buffer --> EXTRA_DATA_SEGMENT:new_offset_sector
-    mov        cx, 0x0101           ; track number = 1, sector number = 1
+;.read_C1_H0_S1_to_S18:
+;    mov        al, BOOT1_HEAD0_CYLINDER1_NB_SECTORS
+;    mov        bx, (BOOT1_START_ADDR + 512*17) ; address of buffer --> EXTRA_DATA_SEGMENT:new_offset_sector
+;    mov        cx, 0x0101           ; track number = 1, sector number = 1
 
 .read_bios_call:
     mov        ah, 0x02             ; call BIOS service (0x02, BIOS_INT_DRIVE)
-    ;clc                            ; clear CF (carry flag)
     int        BIOS_INT_DRIVE
     jnc        .read_succeeded              ; if an error occurs, CF(carry flag) is set to 1
                                             ; CF set to 0, all the sectors were read correctly
 .read_fail:
     cmp        cx, 0x0002
-    je         .read_C0_H0_S2_to_S18
-    jmp        .read_C1_H0_S1_to_S18
+    jmp        .read_C0_H0_S2_to_S18
+;    je         .read_C0_H0_S2_to_S18
+;    jmp        .read_C1_H0_S1_to_S18
 
 .read_succeeded:
-    cmp        cx, 0x0002
-    je         .read_C1_H0_S1_to_S18
+    ;cmp        cx, 0x0002
+    ;je         .read_C1_H0_S1_to_S18
 
     ;mov        si, msg_read_boot1_success
     ;call       prints
