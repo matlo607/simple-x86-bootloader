@@ -14,8 +14,6 @@ LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
 CC=$(ARCH_PREFIX)-gcc
 CFLAGS=-std=c99 -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -Wall -W -I$(INCDIR)
 
-OBJCOPY=$(ARCH_PREFIX)-objcopy
-
 SRC_NASM= $(wildcard *.asm)
 SRC_GAS= $(wildcard *.S)
 SRC_C= $(wildcard *.c)

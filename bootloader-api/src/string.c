@@ -48,7 +48,7 @@ size_t strlen(const char* str)
     return count;
 }
 
-const char* strchr(const char* str, char c)
+char* strchr(const char* str, char c)
 {
     assert(str != NULL, "cannot search an occurrence in a null string");
 
@@ -57,9 +57,59 @@ const char* strchr(const char* str, char c)
     }
 
     if (*str == c) {
-        return str;
+        return (char*)str;
     } else {
         return NULL;
+    }
+}
+
+
+ssize_t strcmp(const char* s1, const char* s2)
+{
+    if (s1 == NULL && s2 == NULL) {
+        return 0;
+    } else if (s1 == NULL) {
+        return -1;
+    } else if (s2 == NULL) {
+        return 1;
+    }
+
+    while (*s1 != '\0' && *s2 != '\0' && *s1 == *s2) {
+        s1++;
+        s2++;
+    }
+
+    if (*s1 == *s2) {
+        return 0;
+    } else if (*s1 < *s2) { // if *s1 == '\0', it works too
+        return -1;
+    } else /* (*s1 > *s2) */ {
+        return 1;
+    }
+}
+
+ssize_t strncmp(const char* s1, const char* s2, size_t n)
+{
+    if (s1 == NULL && s2 == NULL) {
+        return 0;
+    } else if (s1 == NULL) {
+        return -1;
+    } else if (s2 == NULL) {
+        return 1;
+    }
+
+    size_t i = 0;
+    for (; i < n && (*s1 != '\0' && *s2 != '\0' && *s1 == *s2); i++) {
+        s1++;
+        s2++;
+    }
+
+    if (*s1 == *s2) {
+        return 0;
+    } else if (*s1 < *s2) { // if *s1 == '\0', it works too
+        return -1;
+    } else /* (*s1 > *s2) */ {
+        return 1;
     }
 }
 

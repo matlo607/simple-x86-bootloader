@@ -35,7 +35,29 @@ extern size_t strlen(const char* str);
  * \return pointer on the first occurence
  *
  * */
-extern const char* strchr(const char* str, char c);
+extern char* strchr(const char* str, char c);
+
+/*
+ * \brief Compare two strings.
+ * \param[in] s1 : first string
+ * \param[in] s2 : second string
+ * \return an integer less than, equal to, or greater than zero if s1 is found,
+ * respectively, to be less than, to match, or be greater than s2
+ *
+ * */
+extern ssize_t strcmp(const char* s1, const char* s2);
+
+/*
+ * \brief Compare at most n bytes of strings s1 and s2.
+ * \param[in] s1 : first string
+ * \param[in] s2 : second string
+ * \param[in] n  : number of bytes to compare
+ * \return an integer less than, equal to, or greater than zero if s1 (or the
+ * first n bytes thereof) is found, respectively, to be less than, to match,
+ * or be greater than s2
+ *
+ * */
+extern ssize_t strncmp(const char* s1, const char* s2, size_t n);
 
 /*
  * \brief Copy a string into another (until '\0' is found in src).
