@@ -10,6 +10,11 @@ BOOTLOADER_API_SRC_PATH=$(BOOTLOADER_API_DIR)/src
 BOOTLOADER_API_INC_PATH=$(BOOTLOADER_API_DIR)/inc
 BOOTLOADER_API_OBJ_PATH=$(BOOTLOADER_API_DIR)/src
 
+BOOTLOADER_SHELL_DIR=./shell
+BOOTLOADER_SHELL_SRC_PATH=$(BOOTLOADER_SHELL_DIR)
+BOOTLOADER_SHELL_INC_PATH=$(BOOTLOADER_SHELL_DIR)
+BOOTLOADER_SHELL_OBJ_PATH=$(BOOTLOADER_SHELL_DIR)
+
 BOOT0_DIR=./boot0
 
 #####################
@@ -26,7 +31,7 @@ LD=$(ARCH_PREFIX)-ld
 LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
 
 CC=$(ARCH_PREFIX)-gcc
-CFLAGS=-std=c99 -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH)
+CFLAGS=-std=c99 -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH) -I$(BOOTLOADER_SHELL_INC_PATH)
 
 OBJDUMP=$(ARCH_PREFIX)-objdump
 OBJCOPY=$(ARCH_PREFIX)-objcopy
@@ -52,6 +57,8 @@ SRC_API_NASM= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.asm)
 SRC_API_GAS= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.S)
 SRC_API_C= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.c)
 
+SRC_SHELL_C= $(wildcard $(BOOTLOADER_SHELL_SRC_PATH)/*.c)
+
 OBJ= $(SRC_NASM:.asm=.o)
 OBJ+= $(SRC_GAS:.S=.o)
 OBJ+= $(SRC_C:.c=.o)
@@ -60,12 +67,16 @@ OBJ_API= $(SRC_API_NASM:.asm=.o)
 OBJ_API+= $(SRC_API_GAS:.S=.o)
 OBJ_API+= $(SRC_API_C:.c=.o)
 
+OBJ_SHELL= $(SRC_SHELL_C:.c=.o)
+
 ELF= $(ELF_STAGE0) $(ELF_STAGE1)
 BIN= $(ELF:.elf=.bin)
 
 
 all: $(BIN)
 
+$(OBJ_SHELL):
+	$(MAKE) -C $(BOOTLOADER_SHELL_SRC_PATH)
 
 $(OBJ_API):
 	$(MAKE) -C $(BOOTLOADER_API_SRC_PATH)
@@ -73,7 +84,7 @@ $(OBJ_API):
 $(ELF_STAGE0):
 	$(MAKE) -C $(BOOT0_DIR)
 
-$(ELF_STAGE1): $(OBJ_API) bootstrap.o bootloader.o
+$(ELF_STAGE1): $(OBJ_API) $(OBJ_SHELL) bootstrap.o bootloader.o
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -104,10 +115,13 @@ clean:
 clean-api:
 	-$(MAKE) -C $(BOOTLOADER_API_SRC_PATH) clean
 
+clean-shell:
+	-$(MAKE) -C $(BOOTLOADER_SHELL_SRC_PATH) clean
+
 clean-boot0:
 	-$(MAKE) -C $(BOOT0_DIR) clean
 
-clean-all: clean-boot0 clean-api clean
+clean-all: clean-boot0 clean-api clean-shell clean
 
 
 # Inspection tools

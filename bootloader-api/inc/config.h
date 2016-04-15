@@ -20,6 +20,7 @@
 #ifdef DEBUG
     #define DEBUG_ON    true
 
+    //#define DEBUG_SHELL
     //#define DEBUG_HEAP
 #endif
 

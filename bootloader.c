@@ -15,12 +15,14 @@
 #include "e820.h"
 #include "equipment.h"
 #include "malloc.h"
+#include "shell.h"
 
 #define keyboard_waitkeystroke()    getc()
 
 void setup_env(void)
 {
     heap_init();
+    shell_init();
 }
 
 void main(void)
@@ -122,6 +124,11 @@ void main(void)
     // get boot signature
     uint16_t* p_signature = (uint16_t*) (sector_buffer + 0x01fe);
     printf("boot signature = 0x%x\r\n", *p_signature);
+
+    video_setmode(VIDEO_MODE_TEXT_16C_80x25_640x200);
+    while (1) {
+        shell_main();
+    }
 
 fatal_failure:
     puts("Wait forever ...");
