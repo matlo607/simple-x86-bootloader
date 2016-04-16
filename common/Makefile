@@ -6,7 +6,7 @@ include $(PROJECT_ROOT)/project.config
 # sources
 include make.config
 
-all: $(SHELL_OBJS)
+all: $(COMMON_OBJS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<

@@ -1,102 +1,68 @@
-ARCH_PREFIX=i386-elf
+PROJECT_ROOT:=.
 
-#################
-## Directories ##
-#################
+# project config
+include $(PROJECT_ROOT)/project.config
 
-BOOTLOADER_API_DIR=./bootloader-api
+# sources
+include $(BOOT0_DIR)/make.config
+include $(ARCH_DIR)/make.config
+include $(LIBC_DIR)/make.config
+include $(SHELL_DIR)/make.config
+include $(COMMON_DIR)/make.config
 
-BOOTLOADER_API_SRC_PATH=$(BOOTLOADER_API_DIR)/src
-BOOTLOADER_API_INC_PATH=$(BOOTLOADER_API_DIR)/inc
-BOOTLOADER_API_OBJ_PATH=$(BOOTLOADER_API_DIR)/src
-
-BOOTLOADER_SHELL_DIR=./shell
-BOOTLOADER_SHELL_SRC_PATH=$(BOOTLOADER_SHELL_DIR)
-BOOTLOADER_SHELL_INC_PATH=$(BOOTLOADER_SHELL_DIR)
-BOOTLOADER_SHELL_OBJ_PATH=$(BOOTLOADER_SHELL_DIR)
-
-BOOT0_DIR=./boot0
-
-#####################
-## TOOLS AND FLAGS ##
-#####################
-
-AS=$(ARCH_PREFIX)-gcc
-ASFLAGS=-c -march=i386 -ffreestanding -fno-asynchronous-unwind-tables -W -I$(BOOTLOADER_API_INC_PATH)
-
-NASM=nasm
-NASMFLAGS=-O0 -f elf32
-
-LD=$(ARCH_PREFIX)-ld
-LDFLAGS=-m elf_i386 -static -nostdlib --nmagic
-
-CC=$(ARCH_PREFIX)-gcc
-CFLAGS=-std=c99 -O0 -c -march=i386 -m16 -ffreestanding -fno-asynchronous-unwind-tables -W -Wall -I$(BOOTLOADER_API_INC_PATH) -I$(BOOTLOADER_SHELL_INC_PATH)
-
-OBJDUMP=$(ARCH_PREFIX)-objdump
-OBJCOPY=$(ARCH_PREFIX)-objcopy
-
-QEMU=qemu-system-i386
-QEMUFLAGS=-s -cpu pentium3 -boot a -display sdl -vga std -k fr -m 64M
-
-##################
-## DEPENDENCIES ##
-##################
 
 IMG=bootloader.img
-BINARY=bootloader.img
-ELF_STAGE0=$(BOOT0_DIR)/boot0.elf
+
+ELF_STAGE0=boot0.elf
 ELF_STAGE1=bootloader.elf
 
+OBJ_STAGE0=$(BOOT0_SRC_NASM:.asm=.o)
+OBJ_STAGE0+=$(BOOT0_SRC_GAS:.S=.o)
+#$(info $$OBJ_STAGE0 = [${OBJ_STAGE0}])
 
-SRC_NASM= $(wildcard *.asm)
-SRC_GAS= $(wildcard *.S)
-SRC_C= $(wildcard *.c)
+OBJ_STAGE1=$(ARCH_SRC_NASM:.asm=.o)
+OBJ_STAGE1+=$(ARCH_SRC_GAS:.S=.o)
+OBJ_STAGE1+=$(ARCH_SRC_C:.c=.o)
+OBJ_STAGE1+=$(LIBC_SRC:.c=.o)
+OBJ_STAGE1+=$(SHELL_SRC:.c=.o)
+OBJ_STAGE1+=$(COMMON_SRC:.c=.o)
 
-SRC_API_NASM= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.asm)
-SRC_API_GAS= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.S)
-SRC_API_C= $(wildcard $(BOOTLOADER_API_SRC_PATH)/*.c)
-
-SRC_SHELL_C= $(wildcard $(BOOTLOADER_SHELL_SRC_PATH)/*.c)
-
-OBJ= $(SRC_NASM:.asm=.o)
-OBJ+= $(SRC_GAS:.S=.o)
-OBJ+= $(SRC_C:.c=.o)
-
-OBJ_API= $(SRC_API_NASM:.asm=.o)
-OBJ_API+= $(SRC_API_GAS:.S=.o)
-OBJ_API+= $(SRC_API_C:.c=.o)
-
-OBJ_SHELL= $(SRC_SHELL_C:.c=.o)
+#$(info $$OBJ_STAGE1 = [${OBJ_STAGE1}])
 
 ELF= $(ELF_STAGE0) $(ELF_STAGE1)
 BIN= $(ELF:.elf=.bin)
 
+all: $(IMG)
 
-all: $(BIN)
+dir-arch:
+	$(MAKE) -C $(ARCH_DIR)
 
-$(OBJ_SHELL):
-	$(MAKE) -C $(BOOTLOADER_SHELL_SRC_PATH)
+dir-shell:
+	$(MAKE) -C $(SHELL_DIR)
 
-$(OBJ_API):
-	$(MAKE) -C $(BOOTLOADER_API_SRC_PATH)
+dir-libc:
+	$(MAKE) -C $(LIBC_DIR)
 
-$(ELF_STAGE0):
-	$(MAKE) -C $(BOOT0_DIR)
+dir-common:
+	$(MAKE) -C $(COMMON_DIR)
 
-$(ELF_STAGE1): $(OBJ_API) $(OBJ_SHELL) bootstrap.o bootloader.o
+$(ELF_STAGE1): $(OBJ_STAGE1)
+	$(LD) $(LDFLAGS) -T$(STAGE1_LD_SCRIPT) -o $@ $^
+
+$(ELF_STAGE0): $(OBJ_STAGE0)
+	$(LD) $(LDFLAGS) -T$(STAGE0_LD_SCRIPT) -o $@ $^
+
+%.o: %.asm
+	$(NASM) $(NASMFLAGS) -o $@ -l $*.lst $<
+
+%.o: %.S
+	$(CC) $(ASFLAGS) -o $@ $<
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-%.o: %.asm
-	$(ASM) $(NASMFLAGS) -o $@ -l $*.lst $<
-
-%.o: %.S
-	$(AS) $(ASFLAGS) -o $@ $<
-
-%.elf: %.o
-	$(LD) $(LDFLAGS) -T$*.ld -o $@ $^
+#%.elf: %.o
+#	$(LD) $(LDFLAGS) -T$(LD_SCRIPT) -o $@ $^
 
 %.bin: %.elf
 	$(OBJCOPY) --remove-section=.comment --remove-section=.note -O binary $< $@
@@ -109,19 +75,24 @@ $(IMG): $(BIN)
 ## CLEAN UP ##
 ##############
 
-clean:
-	-rm -f *.o *.elf *.lst *.bin $(IMG)
+clean: clean-arch clean-libc clean-shell clean-common
 
-clean-api:
-	-$(MAKE) -C $(BOOTLOADER_API_SRC_PATH) clean
+clean-arch:
+	-$(MAKE) -C $(ARCH_DIR) clean
+
+clean-libc:
+	-$(MAKE) -C $(LIBC_DIR) clean
 
 clean-shell:
-	-$(MAKE) -C $(BOOTLOADER_SHELL_SRC_PATH) clean
+	-$(MAKE) -C $(SHELL_DIR) clean
 
-clean-boot0:
-	-$(MAKE) -C $(BOOT0_DIR) clean
+clean-common:
+	-$(MAKE) -C $(COMMON_DIR) clean
 
-clean-all: clean-boot0 clean-api clean-shell clean
+mrproper: clean
+	-find . -iname "*.img" -delete
+	-find . -iname "*.bin" -delete
+	-find . -iname "*.elf" -delete
 
 
 # Inspection tools

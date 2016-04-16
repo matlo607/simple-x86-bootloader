@@ -1,9 +1,9 @@
 #include "shell.h"
 
-#include "shell_cmds.h"
-#include "io.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 
+#include <shell_cmds.h>
 
 #define SHELL_LINE_MAX_LEN 100
 #define SHELL_ARGS_MAX_NB  10

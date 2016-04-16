@@ -1,12 +1,12 @@
 PROJECT_ROOT:=..
 
-# project config
+#project config
 include $(PROJECT_ROOT)/project.config
 
 # sources
-include make.config
+include make.config 
 
-all: $(SHELL_OBJS)
+all: $(LIBC_OBJS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<
