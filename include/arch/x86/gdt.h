@@ -1,6 +1,8 @@
 #ifndef _GDT_H
 #define _GDT_H
 
+#include <arch/x86/checkCCversion.h>
+
 #include <stdint.h>
 
 #define GDT_SEG_UNUSED    0

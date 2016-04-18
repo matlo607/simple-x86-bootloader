@@ -1,5 +1,7 @@
-#include <gdt.h>
-#include <cpu.h>
+#include "arch/x86/protected_mode.h"
+
+#include <arch/x86/gdt.h>
+#include <arch/x86/cpu.h>
 
 #include <string.h>
 

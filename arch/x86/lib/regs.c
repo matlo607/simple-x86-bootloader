@@ -1,4 +1,4 @@
-#include "x86_regs.h"
+#include "arch/x86/regs.h"
 
 #include <stdio.h>
 #include <string.h>

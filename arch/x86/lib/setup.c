@@ -1,10 +1,11 @@
 #include "sys/setup.h"
 
-#include <video.h>
-#include <equipment.h>
-#include <e801.h>
-#include <e820.h>
-#include <disk.h>
+#include <arch/x86/video.h>
+#include <arch/x86/equipment.h>
+#include <arch/x86/int12.h>
+#include <arch/x86/e801.h>
+#include <arch/x86/e820.h>
+#include <arch/x86/disk.h>
 
 #include <stdio.h>
 
@@ -39,7 +40,7 @@ bool platform_specific_startup(void)
     // memory detection
 
     ssize_t lower_memory = 0;
-    if ((lower_memory = lower_memory_properties()) < 0) {
+    if ((lower_memory = int12_detect_lower_mem()) < 0) {
         puts("Fail to get the size of lower memory\r\n");
         status = false;
     } else {
@@ -48,8 +49,8 @@ bool platform_specific_startup(void)
 
     keyboard_waitkeystroke();
 
-    upper_memory_prop_t upper_memory;
-    upper_memory_properties(&upper_memory);
+    e801_upper_mem_t upper_memory;
+    e801_detect_upper_mem(&upper_memory);
 
     printf("Upper memory: %uKB [0x%x] (maximum 15MB [0x3c00])\r\n", upper_memory._1MB_to_16MB, upper_memory._1MB_to_16MB);
     printf("              %uKB [0x%x] (%uMB)\r\n", upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB, upper_memory._16MB_to_4GB / 1024);

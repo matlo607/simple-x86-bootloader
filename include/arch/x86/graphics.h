@@ -1,6 +1,8 @@
 #ifndef _GRAPHICS_H
 #define _GRAPHICS_H
 
+#include <arch/x86/checkCCversion.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 

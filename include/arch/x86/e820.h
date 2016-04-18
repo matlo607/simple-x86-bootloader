@@ -1,6 +1,8 @@
 #ifndef _E820_H
 #define _E820_H
 
+#include <arch/x86/checkCCversion.h>
+
 #include <stdint.h>
 #include <stddef.h>
 

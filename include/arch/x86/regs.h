@@ -1,6 +1,8 @@
 #ifndef _x86_REGS_H
 #define _x86_REGS_H
 
+#include <arch/x86/checkCCversion.h>
+
 #include <stdint.h>
 
 typedef union x86_general_purpose_reg_u {

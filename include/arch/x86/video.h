@@ -1,6 +1,8 @@
 #ifndef _BIOS_VIDEO_H
 #define _BIOS_VIDEO_H
 
+#include <arch/x86/checkCCversion.h>
+
 #include <stdint.h>
 
 typedef struct cursor_info_s {

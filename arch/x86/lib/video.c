@@ -1,4 +1,4 @@
-#include "video.h"
+#include "arch/x86/video.h"
 
 #include <assert.h>
 

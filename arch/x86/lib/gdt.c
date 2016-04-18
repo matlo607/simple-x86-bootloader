@@ -1,4 +1,4 @@
-#include "gdt.h"
+#include "arch/x86/gdt.h"
 
 gdtr_t GDTR_val;
 gdt_descriptor_t GDT[3];

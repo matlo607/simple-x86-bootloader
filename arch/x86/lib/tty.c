@@ -1,5 +1,6 @@
 #include <sys/tty.h>
-#include <bios.h>
+
+#include <arch/x86/bios.h>
 
 void tty_initialize(void)
 {

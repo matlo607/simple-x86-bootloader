@@ -1,4 +1,4 @@
-#include <config_mem.h>
+#include <arch/x86/config_mem.h>
 
 .code16gcc
 

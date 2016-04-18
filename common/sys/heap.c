@@ -1,6 +1,6 @@
 #include "sys/heap.h"
 
-#include <sysconfig.h>
+#include <arch/x86/sysconfig.h>
 #include <stdio.h>
 
 heap_node_t* heap_list = NULL;

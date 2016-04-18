@@ -1,6 +1,6 @@
-#include "graphics.h"
+#include "arch/x86/graphics.h"
 
-#include "video.h"
+#include <arch/x86/video.h>
 
 void graphics_draw_line(int16_t A_x, int16_t A_y, int16_t B_x, int16_t B_y, uint8_t color)
 {

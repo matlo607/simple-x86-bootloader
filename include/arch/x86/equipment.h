@@ -1,6 +1,8 @@
 #ifndef _EQUIPMENT_H
 #define _EQUIPMENT_H
 
+#include <arch/x86/checkCCversion.h>
+
 #include <stdint.h>
 
 #define INITIAL_VIDEO_MODE_EGA_VGA          0x0

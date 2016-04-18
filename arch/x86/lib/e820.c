@@ -1,7 +1,7 @@
-#include "e820.h"
+#include "arch/x86/e820.h"
 
-#include "cpu.h"
 #include <stdio.h>
+#include <arch/x86/cpu.h>
 
 
 enum MemRegion_t {

@@ -1,4 +1,4 @@
-#include "equipment.h"
+#include "arch/x86/equipment.h"
 
 #include <stdio.h>
 #include <assert.h>

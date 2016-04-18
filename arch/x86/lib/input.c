@@ -1,6 +1,6 @@
 #include <sys/input.h>
-#include <bios.h>
 
+#include <arch/x86/bios.h>
 
 void input_initialize(void)
 {

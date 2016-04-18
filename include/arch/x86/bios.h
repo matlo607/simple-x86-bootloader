@@ -1,7 +1,8 @@
 #ifndef _BIOS_H
 #define _BIOS_H
 
-#include "x86_regs.h"
+#include <arch/x86/checkCCversion.h>
+#include <arch/x86/regs.h>
 
 /*
  * \brief Perform a bios interrupt.

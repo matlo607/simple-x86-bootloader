@@ -1,5 +1,6 @@
 #include "sys/system.h"
-#include <cpu.h>
+
+#include <arch/x86/cpu.h>
 
 void reboot(void)
 {

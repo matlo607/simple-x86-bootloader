@@ -12,10 +12,10 @@
 
 // to remove from here and create an interface to them because
 // this is specific to i386
-#include <graphics.h>
-#include <video.h>
-#include <disk.h>
-#include <cpu.h>
+#include <arch/x86/graphics.h>
+#include <arch/x86/video.h>
+#include <arch/x86/disk.h>
+#include <arch/x86/cpu.h>
 
 #define keyboard_waitkeystroke()    getc()
 
