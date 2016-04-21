@@ -7,6 +7,8 @@ void x86_regs_init(x86_regs_t* p_regs)
 {
     memset(p_regs, 0, sizeof(x86_regs_t));
 
+#ifndef BOOTLOADER_PROTECTED_MODE_ENABLED
+
     __asm__ __volatile__ (
             "movw %%ds, %[reg_ds];"
             "movw %%es, %[reg_es];"
@@ -17,6 +19,18 @@ void x86_regs_init(x86_regs_t* p_regs)
               [reg_fs] "=g" (p_regs->FS),
               [reg_gs] "=g" (p_regs->GS)
             : );
+
+#else
+
+    p_regs->CS = 0x0000;
+    p_regs->DS = 0x2000;
+    p_regs->ES = 0x2000;
+    p_regs->FS = 0x2000;
+    p_regs->GS = 0x2000;
+    p_regs->SS = 0x2000;
+    p_regs->SP._R = 0xFFFC;
+
+#endif
 }
 
 #ifdef DEBUG

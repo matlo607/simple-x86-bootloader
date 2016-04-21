@@ -1,94 +1,128 @@
 #include "arch/x86/video.h"
 
+#include <stddef.h>
 #include <assert.h>
+#include <arch/x86/bios.h>
 
 void video_setmode(video_mode_t mode)
 {
     assert(mode <= VIDEO_MODE_GRAPHICS_256C_640x480);
 
-    __asm__ __volatile__ (
-            "movb %[bios_service_set_video_mode], %%ah;"
-            "movb %[video_mode], %%al;"
-            "int $0x10;"
-            :
-            : [bios_service_set_video_mode] "i" (0x00),
-              [video_mode] "g" (mode)
-            : "%eax"
-            );
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    regs16_t regs;
+
+    regs.a._Rl = mode;
+    regs.a._Rh = 0x00;
+    int32(0x10, &regs);
+#else
+    x86_regs_t regs_in, regs_out;
+
+    x86_regs_init(&regs_in);
+
+    regs_in.A._Rl = mode;
+    regs_in.A._Rh = 0x00;
+    bioscall(0x10, &regs_in, &regs_out);
+#endif
 }
 
 void video_getstate(video_state_t* state)
 {
-    __asm__ __volatile__ (
-            "movb %[bios_service_get_video_state], %%ah;"
-            "int $0x10;"
-            "movb %%al, %[video_mode];"
-            "movb %%ah, %[nb_char_columns];"
-            "movb %%bh, %[active_page];"
-            : [video_mode] "=m" (state->mode),
-              [nb_char_columns] "=m" (state->char_column_nb),
-              [active_page] "=m" (state->page)
-            : [bios_service_get_video_state] "i" (0x0f)
-            : "%eax", "%ebx"
-            );
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    regs16_t regs;
+
+    regs.a._Rh = 0x0f;
+    int32(0x10, &regs);
+
+    state->page = regs.b._Rh;
+    state->mode = regs.a._Rl;
+    state->char_column_nb = regs.a._Rh;
+#else
+    x86_regs_t regs_in, regs_out;
+
+    x86_regs_init(&regs_in);
+
+    regs_in.A._Rh = 0x0f;
+    bioscall(0x10, &regs_in, &regs_out);
+
+    state->page = regs_out.B._Rh;
+    state->mode = regs_out.A._Rl;
+    state->char_column_nb = regs_out.A._Rh;
+#endif
 }
 
 void video_draw_pixel(uint16_t column, uint16_t row, uint8_t color)
 {
-    __asm__ __volatile__ (
-            "movb %[bios_service_draw_pixel], %%ah;"
-            "movb %[color], %%al;"
-            "movw %[column], %%cx;"
-            "movw %[row], %%dx;"
-            "int $0x10;"
-            :
-            : [bios_service_draw_pixel] "i" (0x0c),
-              [column] "g" (column),
-              [row] "g" (row),
-              [color] "g" (color)
-            : "%eax", "%ecx", "%edx"
-            );
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    regs16_t regs;
+
+    regs.c._Rx = column;
+    regs.d._Rx = row;
+    regs.a._Rl = color;
+    regs.a._Rh = 0x0c;
+    int32(0x10, &regs);
+#else
+    x86_regs_t regs_in, regs_out;
+
+    x86_regs_init(&regs_in);
+
+    regs_in.C._Rx = column;
+    regs_in.D._Rx = row;
+    regs_in.A._Rl = color;
+    regs_in.A._Rh = 0x0c;
+    bioscall(0x10, &regs_in, &regs_out);
+#endif
 }
 
 void video_getcursorpos(uint8_t page, cursor_info_t* info)
 {
-    if (info) {
-        __asm__ __volatile__ (
-                "push %%ecx;"
-                "push %%edx;"
-                "movb %[bios_service_get_cursor_info], %%ah;"
-                "movb %[page], %%bh;"
-                "int $0x10;"
-                "movb %%dh, %[row];"
-                "movb %%dl, %[column];"
-                "movb %%ch, %[top_line];"
-                "movb %%cl, %[bottom_line];"
-                "pop %%edx;"
-                "pop %%ecx;"
-                : [row] "=m" (info->row),
-                  [column] "=m" (info->column),
-                  [top_line] "=m" (info->top_line),
-                  [bottom_line] "=m" (info->bottom_line)
-                : [bios_service_get_cursor_info] "i" (0x03),
-                  [page] "g" (page)
-                : "%eax", "%ebx"
-                );
-    }
+    assert(info != NULL);
+
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    regs16_t regs;
+
+    regs.b._Rh = page;
+    regs.a._Rh = 0x03;
+    int32(0x10, &regs);
+
+    info->row = regs.d._Rh;
+    info->column = regs.d._Rl;
+    info->top_line = regs.c._Rh;
+    info->bottom_line = regs.c._Rl;
+#else
+    x86_regs_t regs_in, regs_out;
+
+    x86_regs_init(&regs_in);
+
+    regs_in.B._Rh = page;
+    regs_in.A._Rh = 0x03;
+    bioscall(0x10, &regs_in, &regs_out);
+
+    info->row = regs_out.D._Rh;
+    info->column = regs_out.D._Rl;
+    info->top_line = regs_out.C._Rh;
+    info->bottom_line = regs_out.C._Rl;
+#endif
 }
 
 void video_setcursorpos(uint8_t page, uint8_t row, uint8_t column)
 {
-    __asm__ __volatile__ ("movb %[bios_service_set_cursor_pos], %%ah;"
-                          "movb %[page], %%bh;"
-                          "movb %[row], %%dh;"
-                          "movb %[column], %%dl;"
-                          "int $0x10"
-                          :
-                          : [bios_service_set_cursor_pos] "i" (0x02),
-                            [page] "g" (page),
-                            [row] "g" (row),
-                            [column] "g" (column)
-                          : "%eax", "%ebx", "%edx"
-                          );
-}
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    regs16_t regs;
 
+    regs.b._Rh = page;
+    regs.d._Rh = row;
+    regs.d._Rl = column;
+    regs.a._Rh = 0x02;
+    int32(0x10, &regs);
+#else
+    x86_regs_t regs_in, regs_out;
+
+    x86_regs_init(&regs_in);
+
+    regs_in.B._Rh = page;
+    regs_in.D._Rh = row;
+    regs_in.D._Rl = column;
+    regs_in.A._Rh = 0x02;
+    bioscall(0x10, &regs_in, &regs_out);
+#endif
+}

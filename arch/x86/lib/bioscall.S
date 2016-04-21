@@ -1,13 +1,41 @@
 .code16gcc
 
-.text
+    .section .text
 
-.global bioscall
+    .set argv_0, 6
+    /* uint8_t intno */
+    .set intno, argv_0
+    /* const x86_regs_t* regs_in */
+    .set regs_in, intno + 4
+    /* x86_regs_t* regs_out */
+    .set regs_out, regs_in + 4
+
+    .set x86_regs_t, 0
+    .set x86_regs_t_CS, x86_regs_t
+    .set x86_regs_t_DS, x86_regs_t_CS + 2
+    .set x86_regs_t_ES, x86_regs_t_DS + 2
+    .set x86_regs_t_FS, x86_regs_t_ES + 2
+    .set x86_regs_t_GS, x86_regs_t_FS + 2
+    .set x86_regs_t_SS, x86_regs_t_GS + 2
+    .set x86_regs_t_BP, x86_regs_t_SS + 2
+    .set x86_regs_t_SP, x86_regs_t_BP + 4
+    .set x86_regs_t_A, x86_regs_t_SP + 4
+    .set x86_regs_t_B, x86_regs_t_A + 4
+    .set x86_regs_t_C, x86_regs_t_B + 4
+    .set x86_regs_t_D, x86_regs_t_C + 4
+    .set x86_regs_t_eflags, x86_regs_t_D + 4
+    .set x86_regs_t_DI, x86_regs_t_eflags + 4
+    .set x86_regs_t_SI, x86_regs_t_DI + 4
+
+    .set bp_stack_offset_post_bioscall, 4 + 4 + 4 + 4 + 4 + 4 + 2 + 2 + 4 + 4 + 2
+
+    .global bioscall
 bioscall:
     pushw %bp
     movw %sp, %bp
 
     /* save current values of the registers */
+    pushl %eax
     pushl %ebx
     pushl %ecx
     pushl %edx
@@ -17,30 +45,27 @@ bioscall:
     pushw %es
 
     /* get the interrupt number */
-    movw 0x06(%bp), %ax
+    movw intno(%bp), %ax
     pushw %ds
     movw %cs, %bx
-    movw %bx, %ds
+    movw %bx, %ds /* change %ds to %cs to change source code */
     movb %al, (1f)
     popw %ds
 
     /* get the pointer on const x86_regs_t* regs_in */
-    movw 0x0a(%bp), %si
+    movw regs_in(%bp), %si
 
-    movw (%esi), %ax
+    movw x86_regs_t_DS(%esi), %ax
     movw %ax, %ds
-    movw 0x02(%esi), %ax
+    movw x86_regs_t_ES(%esi), %ax
     movw %ax, %es
-    /* movw 0x04(%esi), %fs */
-    /* movw 0x06(%esi), %gs */
-    movl 0x08(%esi), %ebp
-    movl 0x0c(%esi), %eax
-    movl 0x10(%esi), %ebx
-    movl 0x14(%esi), %ecx
-    movl 0x18(%esi), %edx
-    /* skip eflags (output value) */
-    movl 0x20(%esi), %edi
-    movl 0x24(%esi), %esi
+    movl x86_regs_t_BP(%esi), %ebp
+    movl x86_regs_t_A(%esi), %eax
+    movl x86_regs_t_B(%esi), %ebx
+    movl x86_regs_t_C(%esi), %ecx
+    movl x86_regs_t_D(%esi), %edx
+    movl x86_regs_t_DI(%esi), %edi
+    movl x86_regs_t_SI(%esi), %esi
 
     /* call bios interupt */
 0:
@@ -57,27 +82,27 @@ bioscall:
 
     /* restore %ebp so that we can access the arguments */
     movw %sp, %bp
-    leaw 0x22(%bp), %bp
+    leaw bp_stack_offset_post_bioscall(%bp), %bp
 
     /* get the pointer on x86_regs_t* regs_out */
-    movl 0xe(%bp), %edi
+    movl regs_out(%bp), %edi
 
-    movl %eax, 0x0c(%edi)
-    movl %ebx, 0x10(%edi)
-    movl %ecx, 0x14(%edi)
-    movl %edx, 0x18(%edi)
+    movl %eax, x86_regs_t_A(%edi)
+    movl %ebx, x86_regs_t_B(%edi)
+    movl %ecx, x86_regs_t_C(%edi)
+    movl %edx, x86_regs_t_D(%edi)
     /* %ebp */
     xorl %eax,%eax
     popw %ax
-    movl %eax, 0x08(%edi)
+    movl %eax, x86_regs_t_BP(%edi)
     /* %edi */
     popl %eax
-    movl %eax, 0x20(%edi)
-    movl %esi, 0x24(%edi)
+    movl %eax, x86_regs_t_DI(%edi)
+    movl %esi, x86_regs_t_SI(%edi)
 
-    /* return eflags in %eax, and also write them in regs_out */
+    /* eflags */
     popl %eax
-    movl %eax, 0x1c(%edi)
+    movl %eax, x86_regs_t_eflags(%edi)
 
     popw %es
     popw %ds
@@ -86,6 +111,7 @@ bioscall:
     popl %edx
     popl %ecx
     popl %ebx
+    popl %eax
 
     popw %bp
     retl

@@ -5,7 +5,7 @@
 
 void __assert_fail(const char* _assertion,
                    const char* _file,
-                   const char* _line,
+                   unsigned int _line,
                    const char* _func);
 
 /*

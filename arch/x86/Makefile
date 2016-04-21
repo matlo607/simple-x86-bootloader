@@ -6,7 +6,7 @@ include $(PROJECT_ROOT)/project.config
 # sources
 include make.config 
 
-all: $(ARCH_OBJS)
+all: $(ARCH_OBJS) linker.ld
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -17,6 +17,10 @@ all: $(ARCH_OBJS)
 %.o: %.S
 	$(CC) $(ASFLAGS) -o $@ $<
 
+linker.ld:
+	$(CC) $(PREPROCESSORFLAGS) -P -E $(STAGE1_LD_SCRIPT).h -o $(STAGE1_LD_SCRIPT)
+
 clean:
 	-find . -name "*.o" -delete
 	-find . -name "*.lst" -delete
+	-rm -f *.ld

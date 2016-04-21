@@ -11,13 +11,15 @@ char input_get_char(void)
 {
     char c;
 
-    //__asm__ __volatile__("movb %[bios_service_read_buffer], %%ah;"
-    //                     "int $0x16;"
-    //                     : "=a" (c)
-    //                     : [bios_service_read_buffer] "i" (0x00)
-    //                     : "cc"
-    //                     );
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    regs16_t regs;
 
+    regs.a._Rh = 0x00;
+
+    int32(0x16, &regs);
+
+    c = regs.a._Rl;
+#else
     x86_regs_t regs_in, regs_out;
 
     x86_regs_init(&regs_in);
@@ -27,6 +29,7 @@ char input_get_char(void)
     bioscall(0x16, &regs_in, &regs_out);
 
     c = regs_out.A._Rl;
+#endif
 
     return c;
 }

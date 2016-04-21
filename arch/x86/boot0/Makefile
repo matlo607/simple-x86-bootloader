@@ -1,5 +1,7 @@
+PROJECT_ROOT:=../../..
+
 include ../arch.config
-include ../../../make.config
+include $(PROJECT_ROOT)/make.config
 include make.config
 
 LD_SCRIPT=boot0.ld
@@ -9,6 +11,8 @@ BIN=$(ELF_STAGE0:.elf=.bin)
 IMG=bootloader.img
 
 all: $(BIN)
+
+$(ELF_STAGE0): $(BOOT0_OBJ)
 
 %.o: %.asm
 	$(NASM) $(NASMFLAGS) -o $@ -l $*.lst $<

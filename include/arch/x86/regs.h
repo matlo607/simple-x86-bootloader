@@ -70,12 +70,15 @@ typedef struct x86_flags_s {
 
 
 typedef struct x86_regs_s {
+    x86_segment_reg_t CS; // code segment
     x86_segment_reg_t DS; // data segment
     x86_segment_reg_t ES; // extended data segment
     x86_segment_reg_t FS; // extended data segment
     x86_segment_reg_t GS; // extended data segment
+    x86_segment_reg_t SS; // extended data segment
 
     x86_pointer_reg_t BP; // base pointer
+    x86_pointer_reg_t SP; // stack pointer
 
     // general purpose registers
     x86_general_purpose_reg_t A; // accumulator register
@@ -102,5 +105,51 @@ extern void x86_regs_init(x86_regs_t* p_regs);
 #ifdef DEBUG
 extern void x86_regs_debug_print(const x86_regs_t* p_regs);
 #endif
+
+typedef union reg16_general_purpose_u {
+    struct {
+        uint8_t _Rl;
+        uint8_t _Rh;
+    };
+    uint16_t _Rx;
+} __attribute__ ((packed)) reg16_general_purpose_t;
+
+typedef struct reg16_eflags_s {
+    uint16_t CF : 1; // Carry flag
+    uint16_t reserved_bit1 : 1;
+    uint16_t PF : 1; // Parity flag
+    uint16_t reserved_bit3 : 1;
+    uint16_t AF : 1; // Auxiliary carry flag
+    uint16_t reserved_bit5 : 1;
+    uint16_t ZF : 1; // Zero flag
+    uint16_t SF : 1; // Sign flag
+    uint16_t TF : 1; // Trap flag
+    uint16_t IF : 1; // Interrupt enable flag
+    uint16_t DF : 1; // Direction flag
+    uint16_t OF : 1; // Overflow flag
+    uint16_t IOPL : 2; // I/O Priviledge level
+    uint16_t NT : 1; // Nested task flag
+    uint16_t reserved_bit15 : 1;
+} __attribute__ ((packed)) reg16_eflags_t;
+
+typedef struct regs16_s {
+    uint16_t di;
+    uint16_t si;
+
+    uint16_t bp;
+    uint16_t sp;
+
+    reg16_general_purpose_t b;
+    reg16_general_purpose_t d;
+    reg16_general_purpose_t c;
+    reg16_general_purpose_t a;
+
+    uint16_t gs;
+    uint16_t fs;
+    uint16_t es;
+    uint16_t ds;
+
+    reg16_eflags_t eflags;
+} __attribute__ ((packed)) regs16_t;
 
 #endif

@@ -20,17 +20,15 @@ CODE_SEGMENT        equ 0x0000
 DATA_SEGMENT        equ 0x0000
 EXTRA_DATA_SEGMENT  equ 0x0000
 
-; Stack segment (STACK_SEGMENT:STACK_BASE_OFFSET) = (0000:7000) --> (0000:6000)
+; Stack segment (STACK_SEGMENT:STACK_BASE_OFFSET) = (0000:8000) --> (0000:7e00) // 512 bytes
 STACK_SEGMENT       equ 0x0000
-STACK_BASE_OFFSET   equ 0x7000 ; stack size = 4kB
+STACK_BASE_OFFSET   equ 0x8000
 
 ; Stage 1's location in RAM
 BOOT1_START_ADDR    equ 0x1000
 ; Stage 1's location on disk
-BOOT1_HEAD0_CYLINDER0_SECTOR_BEGIN  equ 2      ; the first sector is used by boot0
-BOOT1_HEAD0_CYLINDER0_NB_SECTORS    equ 17     ; 8.5kB
-BOOT1_HEAD0_CYLINDER1_SECTOR_BEGIN  equ 1
-BOOT1_HEAD0_CYLINDER1_NB_SECTORS    equ 18     ; 9kB
+BOOT1_HEAD          equ 0
+BOOT1_NB_SECTORS    equ 35     ; 17.5kB
 
 
 ;============================================================================;
@@ -42,39 +40,12 @@ section .text
 _start:
     jmp        main
 
-;==================
-; OS name (8 bytes)
-;==================
-os_name db 'mattOS', CHAR_NULL, CHAR_NULL
-
-;====================
-; OEM parameter block
-;====================
-bpbBytesPerSector:      DW 512
-bpbSectorsPerCluster:   DB 1
-bpbReservedSectors:     DW 1
-bpbNumberOfFATs:        DB 2
-bpbRootEntries:         DW 224
-bpbTotalSectors:        DW 2880
-bpbMedia:               DB 0xF0
-bpbSectorsPerFAT:       DW 9
-bpbSectorsPerTrack:     DW 18
-bpbHeadsPerCylinder:    DW 2
-bpbHiddenSectors:       DD 0
-bpbTotalSectorsBig:     DD 0
-bsDriveNumber:          DB 0
-bsUnused:               DB 0
-bsExtBootSignature:     DB 0x29
-bsSerialNumber:         DD 0xa0a1a2a3
-bsVolumeLabel:          DB "MOS FLOPPY "
-bsFileSystem:           DB "FAT12   "
-
 %include "UTIL.INC"
 ;============================================================================;
 
 main:
 
-registers_initialization:
+init_registers:
     cli                              ; disable interrupts while changing registers
 
     ; canonicalize the instruction pointer
@@ -96,50 +67,31 @@ registers_initialization:
     ; %DS : data segment for the bootloader (rodata, data, bss and stack)
     ; %ES : extra data segment used to load the second stage bootloader
     xor        ax, ax
-    ;mov        ax, DATA_SEGMENT
     mov        ds, ax
-    ;mov        ax, EXTRA_DATA_SEGMENT
     mov        es, ax
 
+    ; save boot drive number
+    mov        BYTE [boot_drv], dl
+
     ; prepare stack segment
-    ;mov        ax, STACK_SEGMENT
     mov        ss, ax
     mov        sp, STACK_BASE_OFFSET ; set the stack pointer to the top of the stack
 
     sti                              ; re-enable interrupts
 
-    ;mov        si, msg_init_registers
-    ;call       prints
-
-reset_drive:
+drive_reset:
     ; Reset disk drive
     ; The drive number is contained in %dl (initialized by the BIOS),
     ; do not touch it, just give it in argument to the drive's reset
     ; BIOS service.
-    mov        cl, 5                 ; maximum number of attempts = 5
-.call_reset_service:
-    ;clc                              ; clear CF (carry flag)
+    ; %dl : boot drive number already initialized
     mov        ah, 0x00              ; call BIOS service (0x00, BIOS_INT_DRIVE)
     int        BIOS_INT_DRIVE
-    jnc        .reset_succeeded      ; if an error occurs, CF(carry flag) is set to 1
-    cmp        cl, 0                 ; check if we still can attempt a new reset
-    je         .reset_failed         ; counter_attempt == 0, drive's reset failed too many times, abandon
-    dec        cl                    ; decrement the possible attempts' counter
-    jmp        .call_reset_service
+    jc         fatal_error          ; if an error occurs, CF(carry flag) is set to 1
 
-.reset_failed:
-    ; an error occured, it is impossible to continue booting
-    mov        si, msg_reset_drive_failure
-    call       prints
-    jmp        fatal_error
-
-.reset_succeeded:
-    ;mov        si, msg_reset_drive_success
-    ;call       prints
-
-read_boot1_from_drive:
+drive_read_boot1:
     ; Read 'boot1' from the hard disk drive.
-    ; 'boot0' is located at (C,H,S)=(0,0,1). 'boot1' follows at (0,0,2) until (1,0,18).
+    ; 'boot0' is located at (C,H,S)=(0,0,1). 'boot1' follows at (0,0,2) until (0,0,37).
     ; 'boot1' will be stored at EXTRA_DATA_SEGMENT:BOOT1_START_ADDR and will occupy 17.5kB.
     ;
     ; Details about the BIOS service :
@@ -150,42 +102,57 @@ read_boot1_from_drive:
     ;   7,0).
     ; - the 6-bits sector number is stored in %cl (bits 5,0).
     ;
-    ; %al <-- 17,18
-    ; %dl <-- drive_number
-    ; %dh <-- 0
+    ; %al <-- 35
     ; %bx <-- @buffer
-    ; %ch <-- 0,1
-    ; %cl <-- 2,1
-    mov        dh, 0                        ; head number = 0
-.read_C0_H0_S2_to_S18:
-    mov        al, 35;BOOT1_HEAD0_CYLINDER0_NB_SECTORS
+    ; %ch <-- 0
+    ; %cl <-- 2
+    ; %dl : boot drive number already initialized
+    ; %dh <-- 0
+    mov        dh, BOOT1_HEAD       ; head number = 0
+    mov        al, BOOT1_NB_SECTORS
     mov        bx, BOOT1_START_ADDR ; address of buffer --> EXTRA_DATA_SEGMENT:new_offset_sector
     mov        cx, 0x0002           ; track number = 0, sector number = 2
-    jmp        .read_bios_call
-
-;.read_C1_H0_S1_to_S18:
-;    mov        al, BOOT1_HEAD0_CYLINDER1_NB_SECTORS
-;    mov        bx, (BOOT1_START_ADDR + 512*17) ; address of buffer --> EXTRA_DATA_SEGMENT:new_offset_sector
-;    mov        cx, 0x0101           ; track number = 1, sector number = 1
-
-.read_bios_call:
     mov        ah, 0x02             ; call BIOS service (0x02, BIOS_INT_DRIVE)
     int        BIOS_INT_DRIVE
-    jnc        .read_succeeded              ; if an error occurs, CF(carry flag) is set to 1
-                                            ; CF set to 0, all the sectors were read correctly
-.read_fail:
-    cmp        cx, 0x0002
-    jmp        .read_C0_H0_S2_to_S18
-;    je         .read_C0_H0_S2_to_S18
-;    jmp        .read_C1_H0_S1_to_S18
+    jc         fatal_error         ; if an error occurs, CF(carry flag) is set to 1
+                                    ; CF set to 0, all the sectors were read correctly
 
-.read_succeeded:
-    ;cmp        cx, 0x0002
-    ;je         .read_C1_H0_S1_to_S18
-
-    ;mov        si, msg_read_boot1_success
-    ;call       prints
+    ; jump to boot1's entry point (but stay in real mode)
     jmp        DWORD EXTRA_DATA_SEGMENT:BOOT1_START_ADDR
+
+gdt_init:
+    mov ax, gdtend
+    mov bx, gdt
+    sub ax, bx ; compute GDT's limit
+    mov WORD [gdtptr], ax
+
+    xor eax, eax ; compute linear of GDT
+    mov ax, ds
+    shl eax, 4
+    xor ebx, ebx
+    mov bx, gdt
+    add eax, ebx
+    mov DWORD [gdtptr + 2], eax
+
+switch_to_protected_mode:
+    cli             ; disable interrupts (BIOS IVT not available anymore)
+    lgdt [gdtptr]   ; load global descriptor table
+    mov eax, cr0
+    or  ax, 1
+    mov cr0, eax    ; set PE bit of CR0
+
+    jmp .next
+.next:
+    mov ax, (gdt - gdt_ds) ; offset data segment descriptor = 0x10
+    mov ds, ax
+    mov fs, ax
+    mov gs, ax
+    mov es, ax
+    mov ss, ax
+    mov esp, 0x9F000 ; just below EBDA (Extended BIOS Data Area) [0x9FC00]
+
+    ; jump to boot1's entry point
+    jmp DWORD (gdt - gdt_cs):BOOT1_START_ADDR ; initialize code segment
 
 fatal_error:
     mov        si, msg_please_reboot
@@ -198,22 +165,24 @@ fatal_error:
 ;================================== DATA ====================================;
 ;============================================================================;
 section .rodata
-;    msg_init_registers  db 'Bootloader v0.1, stage 0', CHAR_CR, CHAR_LF, \
-;                           'Initialization of registers %cs, %ds, %es, %ss, %sp [OK]', \
-;                           CHAR_CR, CHAR_LF, CHAR_NULL
-;                           ;'Canonicalization (%cs:%ip) [OK]', CHAR_CR, CHAR_LF, \
-;                           ;'Data segment %ds at 0000:7c00', CHAR_CR, CHAR_LF, \
-;                           ;'Extended data segment %es at 0000:1000', CHAR_CR, CHAR_LF, \
-;                           ;'Stack size 1kB, %ss:%sp at 0000:7000', CHAR_CR, CHAR_LF, \
-;
-;    msg_reset_drive_success db 'Reset drive controller [OK]', CHAR_CR, CHAR_LF, CHAR_NULL
-     msg_reset_drive_failure db 'Fail to reset drive controller', CHAR_NULL
-;
-;    msg_read_boot1_success  db 'Copy boot1 from drive [OK]', CHAR_CR, CHAR_LF, \
-;                               'Jump to stage 1 at 0000:1000', CHAR_CR, CHAR_LF, CHAR_NULL
-     msg_read_boot1_failure  db 'Fail to read boot1 from drive', CHAR_NULL
-     msg_please_reboot       db ', please reboot', CHAR_NULL
+     msg_please_reboot       db 'An error was encountered, please reboot', CHAR_NULL
 
+section .bss
+     boot_drv                resb 1
+
+section .data
+gdt:
+     db 0, 0, 0, 0, 0, 0, 0, 0
+gdt_cs: ; flat model
+     db 0xFF, 0xFF, 0x0, 0x0, 0x0, 10011011b, 11011111b, 0x0
+gdt_ds: ; flat model
+     db 0xFF, 0xFF, 0x0, 0x0, 0x0, 10010011b, 11011111b, 0x0
+gdtend:
+     ;--------------------------------------------------------------------
+gdtptr:
+     dw 0  ; limite
+     dd 0  ; base
+     ;---------------------------
 
 
 %define __SWAP_16__(n)  (((n) << 8) | ((n) >> 8))
@@ -254,8 +223,3 @@ section .partition3
 
 section .partition4
     times 16 db 0 ; unused partition
-
-;    times 510-($-$$)    db CHAR_NULL
-;
-;    ; MBR signature
-;    dw 0xAA55

@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <arch/x86/bios.h>
 
 static equipment_info_t equipment_get_info(void);
 static void equipment_print_info(equipment_info_t equipement);
@@ -10,13 +11,21 @@ equipment_info_t equipment_get_info(void)
 {
     equipment_info_t field = {0};
 
-    __asm__ __volatile__ (
-            "int $0x11;"
-            "movw %%ax, %[equipment_info];"
-            : [equipment_info] "=g" (field)
-            :
-            : "%ax"
-            );
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    regs16_t regs;
+
+    int32(0x11, &regs);
+
+    field = *((equipment_info_t*) &regs.a._Rx);
+#else
+    x86_regs_t regs_in, regs_out;
+
+    x86_regs_init(&regs_in);
+
+    bioscall(0x11, &regs_in, &regs_out);
+
+    field = *((equipment_info_t*) &regs_out.A._Rx);
+#endif
 
     return field;
 }

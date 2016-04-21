@@ -1,17 +1,23 @@
 OUTPUT_FORMAT("elf32-i386")
-OUTPUT_ARCH(i386)
+/*OUTPUT_ARCH(i386)*/
 ENTRY (_start)
+STARTUP ("arch/x86/bootstrap.o")
 
 MEMORY {
     /* 35 sectors are allocated to the second stage bootloader.
      * */
-    disk_mem(r) : ORIGIN = 0x0, LENGTH = 512 * 17 + 512 * 18
+    disk_mem(r) : ORIGIN = 0x0, LENGTH = 512 * 40
 
     /* The code and the data (.data, .rodata, .bss, heap and stack) are
      * located in two different memory area with a size of 64KB each one.
      **/
+#if !defined(BOOTLOADER_PROTECTED_MODE_ENABLED)
     segment_code(rx) : ORIGIN = 0x1000, LENGTH = 64*1024*1024 - 0x1000
     segment_data(rwx) : ORIGIN = 0x0000, LENGTH = 64*1024*1024
+#else
+    segment_code(rx) : ORIGIN = 0x1000, LENGTH = 64*1024*1024 - 0x1000
+    segment_data(rwx) : ORIGIN = 0x10000, LENGTH = 64*1024*1024
+#endif
 }
 
 REGION_ALIAS("REGION_TEXT", segment_code);

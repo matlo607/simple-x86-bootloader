@@ -14,10 +14,11 @@ typedef struct shell_command_s {
 // commands list
 extern int32_t do_help(uint8_t argc, char** argv);
 extern int32_t do_reboot(uint8_t argc, char** argv);
+extern int32_t do_mmap(uint8_t argc, char** argv);
 
 
 // to update everytime we add/remove a command
-#define COMMAND_NUMBER 2
+#define COMMAND_NUMBER 3
 static const shell_command_t cmd_table[COMMAND_NUMBER] =
 {
     {
@@ -29,6 +30,11 @@ static const shell_command_t cmd_table[COMMAND_NUMBER] =
         .name = "reboot",
         .description = "reboot the system",
         .func_cmd = &do_reboot
+    },
+    {
+        .name = "mmap",
+        .description = "display the memory map",
+        .func_cmd = &do_mmap
     }
 };
 

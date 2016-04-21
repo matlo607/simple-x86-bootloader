@@ -20,9 +20,9 @@ OBJ_STAGE0=$(BOOT0_SRC_NASM:.asm=.o)
 OBJ_STAGE0+=$(BOOT0_SRC_GAS:.S=.o)
 #$(info $$OBJ_STAGE0 = [${OBJ_STAGE0}])
 
-OBJ_STAGE1=$(ARCH_SRC_NASM:.asm=.o)
-OBJ_STAGE1+=$(ARCH_SRC_GAS:.S=.o)
-OBJ_STAGE1+=$(ARCH_SRC_C:.c=.o)
+OBJ_STAGE1=$(ARCH_SRC_WITHOUT_BOOTSTRAP_NASM:.asm=.o)
+OBJ_STAGE1+=$(ARCH_SRC_WITHOUT_BOOTSTRAP_GAS:.S=.o)
+OBJ_STAGE1+=$(ARCH_SRC_WITHOUT_BOOTSTRAP_C:.c=.o)
 OBJ_STAGE1+=$(LIBC_SRC:.c=.o)
 OBJ_STAGE1+=$(SHELL_SRC:.c=.o)
 OBJ_STAGE1+=$(COMMON_SRC:.c=.o)
@@ -32,7 +32,7 @@ OBJ_STAGE1+=$(COMMON_SRC:.c=.o)
 ELF= $(ELF_STAGE0) $(ELF_STAGE1)
 BIN= $(ELF:.elf=.bin)
 
-all: $(IMG)
+all: dir-tools $(IMG)
 
 dir-arch:
 	$(MAKE) -C $(ARCH_DIR)
@@ -46,7 +46,12 @@ dir-libc:
 dir-common:
 	$(MAKE) -C $(COMMON_DIR)
 
+dir-tools:
+	$(MAKE) -C $(TOOLS_DIR)
+
 $(ELF_STAGE1): $(OBJ_STAGE1)
+	$(MAKE) -C $(ARCH_DIR) bootstrap.o
+	$(MAKE) -C $(ARCH_DIR) linker.ld
 	$(LD) $(LDFLAGS) -T$(STAGE1_LD_SCRIPT) -o $@ $^
 
 $(ELF_STAGE0): $(OBJ_STAGE0)
@@ -68,6 +73,7 @@ $(ELF_STAGE0): $(OBJ_STAGE0)
 	$(OBJCOPY) --remove-section=.comment --remove-section=.note -O binary $< $@
 
 $(IMG): $(BIN)
+	$(TOOLS_DIR)/mbrpart boot0.bin
 	cat $^ /dev/zero | dd of=$@ bs=512 count=2880
 
 
@@ -75,7 +81,7 @@ $(IMG): $(BIN)
 ## CLEAN UP ##
 ##############
 
-clean: clean-arch clean-libc clean-shell clean-common
+clean: clean-arch clean-libc clean-shell clean-common clean-tools
 
 clean-arch:
 	-$(MAKE) -C $(ARCH_DIR) clean
@@ -89,6 +95,9 @@ clean-shell:
 clean-common:
 	-$(MAKE) -C $(COMMON_DIR) clean
 
+clean-tools:
+	-$(MAKE) -C $(TOOLS_DIR) mrproper
+
 mrproper: clean
 	-find . -iname "*.img" -delete
 	-find . -iname "*.bin" -delete
@@ -97,13 +106,13 @@ mrproper: clean
 
 # Inspection tools
 disassemble-bin: $(BINARY)
-	$(OBJDUMP) -D -b binary -mi386 -Maddr16,data16 $< | less
+	$(OBJDUMP) -D -b binary $(ARCH_OBJDUMPFLAGS) $< | less
 
 disassemble-elf-stage0: $(ELF_STAGE0)
 	$(OBJDUMP) -D -mi386 -Maddr16,data16 $< | less
 
 disassemble-elf-stage1: $(ELF_STAGE1)
-	$(OBJDUMP) -D -mi386 -Maddr16,data16 $< | less
+	$(OBJDUMP) -D $(ARCH_OBJDUMPFLAGS) $< | less
 
 hexdump: $(BINARY)
 	xxd -c 1 $< | less
@@ -118,7 +127,7 @@ run-qemu-with-gdb: $(IMG)
 
 run-gdb:
 	gdb -ex 'target remote localhost:1234' \
-		-ex 'set architecture i8086' \
+		-ex 'set architecture i386' \
 		-ex 'break *0x7c00' \
 		-ex 'continue'
 

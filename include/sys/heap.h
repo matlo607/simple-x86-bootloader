@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <debug.h>
 
 #define HEAP_MAX_SIZE        4096 // 4kB
 

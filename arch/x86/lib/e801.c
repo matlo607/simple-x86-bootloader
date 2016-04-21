@@ -6,6 +6,37 @@
 bool e801_detect_upper_mem(e801_upper_mem_t* mem_properties)
 {
     bool succeeded = false;
+
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    regs16_t regs;
+
+    regs.a._Rx = 0xe801;
+    int32(0x15, &regs);
+
+    if (regs.eflags.CF) {
+        if (regs.a._Rh == 0x86) {
+            printf("int 0x15, ax=0xE801: unsupported function\r\n");
+        } else if (regs.a._Rh == 0x80) {
+            printf("int 0x15, ax=0xE801: invalid command\r\n");
+        }
+
+    } else {
+
+        if (regs.a._Rx || regs.b._Rx) {
+            mem_properties->_1MB_to_16MB = regs.a._Rx;
+            mem_properties->_16MB_to_4GB = regs.b._Rx;
+        } else  {
+            mem_properties->_1MB_to_16MB = regs.c._Rx;
+            mem_properties->_16MB_to_4GB = regs.d._Rx;
+        }
+
+        if (mem_properties->_1MB_to_16MB <= 0x3c00) { // Maximum 15MB [0x3c00]
+            succeeded = true;
+        }
+
+        mem_properties->_16MB_to_4GB = mem_properties->_16MB_to_4GB * 64;
+    }
+#else
     x86_regs_t regs_in, regs_out;
 
     x86_regs_init(&regs_in);
@@ -45,6 +76,7 @@ bool e801_detect_upper_mem(e801_upper_mem_t* mem_properties)
 
         mem_properties->_16MB_to_4GB = mem_properties->_16MB_to_4GB * 64;
     }
+#endif
 
     return succeeded;
 }

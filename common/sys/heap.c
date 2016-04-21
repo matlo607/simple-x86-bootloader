@@ -14,7 +14,7 @@ void heap_init(void)
     heap_list->size = HEAP_MAX_SIZE - sizeof(heap_node_t);
 
 #ifdef DEBUG_HEAP
-    debug_printf("HEAP: initialization start=0x%x, size=%u\r\n", heap_list, heap_list->size);
+    debug_printf("HEAP: initialization start=%#08x, size=%u\r\n", heap_list, heap_list->size);
 #endif
 }
 
@@ -25,10 +25,10 @@ void heap_init(void)
 
 void debug_print_node(const heap_node_t* node)
 {
-    debug_printf("HEAP: \tnode = 0x%x (next = 0x%x, mem = 0x%x, used = %b, size = %u)\r\n",
+    debug_printf("HEAP: \tnode = %#08x (next = %#08x, mem = %#08x, used = %b, size = %u)\r\n",
             node,
-            node + 1,
             node->next,
+            node + 1,
             node->used,
             node->size);
 }

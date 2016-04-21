@@ -45,7 +45,17 @@
                            : \
                            : )
 
-#define reg_set_extended_data_segment(ADDR) \
+#define reg_set_ES_segment(ADDR) \
+    __asm__ __volatile__ ( "movw %w0, %%es;" \
+                           : \
+                           : "r" (ADDR) )
+
+#define reg_set_FS_segment(ADDR) \
+    __asm__ __volatile__ ( "movw %w0, %%es;" \
+                           : \
+                           : "r" (ADDR) )
+
+#define reg_set_GS_segment(ADDR) \
     __asm__ __volatile__ ( "movw %w0, %%es;" \
                            : \
                            : "r" (ADDR) )

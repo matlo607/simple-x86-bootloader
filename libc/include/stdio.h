@@ -102,7 +102,7 @@ extern void printf(const char* format, ...);
  * \brief Macro enabled only if DEBUG has been defined. The behavior is exactly the same
  * than printf().
  * */
-#define debug_printf(fmt, ...) do { if (DEBUG_ON) printf(fmt, ##__VA_ARGS__); } while (0)
+#define debug_printf(fmt, ...) do { printf(fmt, ##__VA_ARGS__); } while (0)
 #endif
 
 #endif
