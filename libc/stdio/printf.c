@@ -10,6 +10,13 @@ void printf(const char* format, ...)
     va_list args_list;
     va_start(args_list, format);
 
+    vprintf(format, args_list);
+
+    va_end(args_list);
+}
+
+void vprintf(const char* format, va_list ap)
+{
     const char* mark;
     const char* str_start = format;
     char var_format;
@@ -55,7 +62,7 @@ void printf(const char* format, ...)
         switch (var_format) {
             case 's':
                 {
-                    char* p_str = va_arg(args_list, char*);
+                    char* p_str = va_arg(ap, char*);
 
                     putsdelim(str_start, '%');
                     str_start = ++mark;
@@ -70,7 +77,7 @@ void printf(const char* format, ...)
 
             case 'd':
                 {
-                    int32_t n = va_arg(args_list, int32_t);
+                    int32_t n = va_arg(ap, int32_t);
                     inttostring(n, buf_nbtostring, 10);
 
                     putsdelim(str_start, '%');
@@ -91,7 +98,7 @@ void printf(const char* format, ...)
 
             case 'u':
                 {
-                    uint32_t n = va_arg(args_list, uint32_t);
+                    uint32_t n = va_arg(ap, uint32_t);
                     uinttostring(n, buf_nbtostring, 10);
 
                     putsdelim(str_start, '%');
@@ -113,7 +120,7 @@ void printf(const char* format, ...)
             case 'p':
             case 'x':
                 {
-                    uint32_t n = va_arg(args_list, uint32_t);
+                    uint32_t n = va_arg(ap, uint32_t);
                     uinttostring(n, buf_nbtostring, 16);
 
                     putsdelim(str_start, '%');
@@ -138,7 +145,7 @@ void printf(const char* format, ...)
 
             case 'b':
                 {
-                    uint32_t n = va_arg(args_list, uint32_t);
+                    uint32_t n = va_arg(ap, uint32_t);
                     uinttostring(n, buf_nbtostring, 2);
 
                     putsdelim(str_start, '%');
@@ -163,7 +170,7 @@ void printf(const char* format, ...)
 
             case 'c':
                 {
-                    char c = va_arg(args_list, char);
+                    char c = va_arg(ap, char);
 
                     putsdelim(str_start, '%');
                     str_start = ++mark;
@@ -192,6 +199,4 @@ void printf(const char* format, ...)
     }
 
     puts(str_start);
-
-    va_end(args_list);
 }

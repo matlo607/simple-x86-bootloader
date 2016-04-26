@@ -38,8 +38,6 @@ void setup(void)
 
 void main(void)
 {
-    //assert(true == false);
-
 #ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
     //x86_regs_t regs_in, regs_out;
 

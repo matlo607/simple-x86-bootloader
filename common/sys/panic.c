@@ -1,6 +1,5 @@
 #include "sys/system.h"
 
-#include <stdio.h>
 #include <stdarg.h>
 
 static void panic_finish(void)
@@ -14,7 +13,7 @@ void panic(const char *format, ...)
 
     va_start(args_list, format);
 
-    printf(format, args_list);
+    vprintf(format, args_list);
 
     va_end(args_list);
 

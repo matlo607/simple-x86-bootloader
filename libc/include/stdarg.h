@@ -14,4 +14,7 @@ typedef void*   va_list;
 #define va_end(args_list) \
     args_list = NULL
 
+
+extern void vprintf(const char* format, va_list ap);
+
 #endif
