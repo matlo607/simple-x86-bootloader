@@ -22,7 +22,7 @@ MBR_format_t* mbr_open(uint8_t drive_nb)
     offset = (0x0000FFFF & (uint32_t)mbr);
 #else
     reg_get_data_segment(&reg_ds);
-    offset = (uint16_t)mbr;
+    offset = (uint16_t)(uint32_t)mbr;
 #endif
 
     uint8_t nb_sectors_to_read = 1;

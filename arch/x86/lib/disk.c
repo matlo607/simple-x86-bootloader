@@ -53,7 +53,7 @@ uint8_t disk_read_sectors(
     regs.d._Rl = drive_nb;
     regs.b._Rx = offset;
     regs.es = segment_base;
-    regs.a._Rh = 0x00;
+    regs.a._Rh = 0x02;
 
     int32(0x13, &regs);
 
