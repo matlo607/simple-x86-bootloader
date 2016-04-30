@@ -18,7 +18,7 @@ all: $(ARCH_OBJS) linker.ld
 	$(CC) $(ASFLAGS) -o $@ $<
 
 linker.ld:
-	$(CC) $(PREPROCESSORFLAGS) -P -E $(STAGE1_LD_SCRIPT).h -o $(STAGE1_LD_SCRIPT)
+	$(CC) $(PREPROCESSORFLAGS) -I$(PROJECT_ROOT)/include -P -E $(STAGE1_LD_SCRIPT).h -o $(STAGE1_LD_SCRIPT)
 
 clean:
 	-find . -name "*.o" -delete

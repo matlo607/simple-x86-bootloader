@@ -18,7 +18,7 @@ $(ELF_STAGE0): $(BOOT0_OBJ)
 	$(NASM) $(NASMFLAGS) -o $@ -l $*.lst $<
 
 %.o: %.S
-	$(CC) $(ASFLAGS) -o $@ $<
+	$(CC) -I$(PROJECT_ROOT)/include $(ASFLAGS) -o $@ $<
 
 %.elf: %.o
 	$(LD) $(LDFLAGS) -T$(LD_SCRIPT) -o $@ $^

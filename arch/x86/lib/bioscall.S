@@ -1,3 +1,4 @@
+#ifndef BOOTLOADER_PROTECTED_MODE_ENABLED
 .code16gcc
 
     .section .text
@@ -114,4 +115,5 @@ bioscall:
     popl %eax
 
     popw %bp
-    retl
+    retw
+#endif

@@ -1,29 +1,10 @@
 .code16gcc
 
-/* #include "boot0.h" */
-
-/* Code segment (CODE_SEGMENT:CODE_OFFSET) = (0000:7c00) */
-/* The code offset is provided by the absolute long jump */
-#define CODE_SEGMENT        0x0000
-
-/* Data segments */
-#define DATA_SEGMENT        0x0000
-#define EXTRA_DATA_SEGMENT  0x0000
-
-/* Stack segment (STACK_SEGMENT:STACK_BASE_OFFSET) = (0000:8000) --> (0000:7e00) // 512 bytes */
-#define STACK_SEGMENT       0x0000
-#define STACK_BASE_OFFSET   0x8000
-
-/* Stage 1's location in RAM */
-#define BOOT1_START_ADDR    0x1000
-/* Stage 1's location on disk */
-#define BOOT1_HEAD          0
-#define BOOT1_NB_SECTORS    40     // 20kB
+#include "arch/x86/config_mem.h"
 
 #define CHAR_NULL 0x0
 #define CHAR_LF   0xa
 #define CHAR_CR   0xd
-
 
     .section .rodata
 msg_please_reboot:
@@ -34,6 +15,7 @@ boot_drv:
     .byte 1
 
     .section .data
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
 gdt:
     .byte 0, 0, 0, 0, 0, 0, 0, 0
 gdt_cs: /* flat model */
@@ -41,14 +23,14 @@ gdt_cs: /* flat model */
 gdt_ds: /* flat model */
     .byte 0xFF, 0xFF, 0x0, 0x0, 0x0, 0b10010011, 0b11011111, 0x0
 
-    .set gdt_size,      . - gdt
-    .set gdt_cs_offset, gdt_cs - gdt
-    .set gdt_ds_offset, gdt_ds - gdt
+    .set gdt_size,      (. - gdt)
+    .set gdt_cs_offset, (gdt_cs - gdt)
+    .set gdt_ds_offset, (gdt_ds - gdt)
 
 gdtptr:
     .hword 0  /* limite */
     .word 0 /* base */
-
+#endif
 
 .section .text
     .global _start;
@@ -77,17 +59,19 @@ prints:
 init_registers:
     cli
 
-    jmpl $CODE_SEGMENT,$next_line
+    jmpl $BOOT0_CODE_SEGMENT,$next_line
 next_line:
 
-    xorw %ax, %ax
+    movw $BOOT0_DATA_SEGMENT, %ax
     movw %ax, %ds
+    movw $BOOT0_EXTRA_DATA_SEGMENT, %ax
     movw %ax, %es
 
     movb %dl, (boot_drv)
 
+    movw $BOOT0_STACK_SEGMENT, %ax
     movw %ax, %ss
-    movw $STACK_BASE_OFFSET, %sp
+    movw $BOOT0_STACK_BASE_OFFSET, %sp
 
     sti
 
@@ -99,7 +83,7 @@ drive_reset:
 drive_read_boot:
     movb $BOOT1_HEAD, %dh
     movb $BOOT1_NB_SECTORS, %al
-    movw $BOOT1_START_ADDR, %bx
+    movw $BOOT1_START_ADDR_RM, %bx
     movw $0x0002, %cx
     movb $0x02, %ah
     int $0x13
@@ -107,7 +91,7 @@ drive_read_boot:
 
 #ifndef BOOTLOADER_PROTECTED_MODE_ENABLED
 
-    jmpl $EXTRA_DATA_SEGMENT,$BOOT1_START_ADDR
+    jmpl $BOOT1_CODE_SEGMENT_RM,$BOOT1_START_ADDR_RM
 
 #else
 
@@ -139,9 +123,9 @@ switch_to_protected_mode:
     movw %ax, %fs
     movw %ax, %gs
     movw %ax, %ss
-    movl $0x9F000, %esp
+    movl $STACK_BASE_OFFSET, %esp
 
-    jmpl $gdt_cs_offset,$BOOT1_START_ADDR
+    jmpl $gdt_cs_offset,$BOOT1_START_ADDR_PM
 
 #endif
 

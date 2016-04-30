@@ -14,26 +14,8 @@ boot_drive_nb:
 
 /* main function address */
 .extern main
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
 .extern gdt_init
-
-    .global _start
-_start:
-
-#ifndef BOOTLOADER_PROTECTED_MODE_ENABLED
-    cli
-
-    movw $SEGMENT_DATA, %ax
-    movw %ax, %ds
-    movw $SEGMENT_EXTRA_DATA, %ax
-    movw %ax, %es
-
-    movw $SEGMENT_STACK, %ax
-    movw %ax, %ss
-    movw $STACK_BASE_OFFSET, %sp
-
-    sti
-#else
-    /* We expect that boot0 has loaded the gdt so that we are in flat protected mode */
 #endif
 
 /*------------------------------*/
@@ -45,26 +27,15 @@ _start:
 /* size of the data sections */
 .extern data_sections_beginning
 
+
+    .global _start
+_start:
+
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
+    /* We expect that boot0 has loaded the gdt so that we are in flat protected mode */
+
     /* relocate data sections to data segment (DATA_SEGMENT:DATA_BASE_OFFSET) */
 
-#ifndef BOOTLOADER_PROTECTED_MODE_ENABLED
-    movw $data_sections_size, %cx
-    movw $data_sections_beginning, %si
-    movw $DATA_BASE_OFFSET, %di
-0:
-    movw %cs:(%si), %ax
-    movw %ax, %ds:(%di)
-    addw $2, %si
-    addw $2, %di
-    cmp %cx, %di
-    jge 1f
-    jmp 0b
-
-1:
-    /* save the drive number */
-    movw $boot_drive_nb, %bx
-    movb %dl, (%bx)
-#else
     movl $data_sections_size, %ebx
     addl $DATA_BASE_OFFSET, %ebx
     movl $data_sections_beginning, %esi
@@ -82,19 +53,49 @@ _start:
     /* save the drive number */
     movl $boot_drive_nb, %ebx
     movb %dl, (%ebx)
-#endif
+
+#else /* BOOTLOADER_REAL_MODE */
+    /* Prepare the segments to perform the relocation */
+    cli
+    movw $SEGMENT_DATA, %ax
+    movw %ax, %ds
+    movw $SEGMENT_EXTRA_DATA, %ax
+    movw %ax, %es
+
+    movw $SEGMENT_STACK, %ax
+    movw %ax, %ss
+    movw $STACK_BASE_OFFSET, %sp
+    sti
+
+    /* relocate data sections to data segment (DATA_SEGMENT:DATA_BASE_OFFSET) */
+    movw $data_sections_size, %cx
+    movw $data_sections_beginning, %si
+    movw $DATA_BASE_OFFSET, %di
+0:
+    movw %cs:(%si), %ax
+    movw %ax, %ds:(%di)
+    addw $2, %si
+    addw $2, %di
+    cmp %cx, %di
+    jge 1f
+    jmp 0b
+
+1:
+    /* save the drive number */
+    movw $boot_drive_nb, %bx
+    movb %dl, (%bx)
+#endif /* BOOTLOADER_REAL_MODE */
 
     /* long jump to set correctly the %CS register */
-#ifndef BOOTLOADER_PROTECTED_MODE_ENABLED
-    jmpl $SEGMENT_CODE,$main
-#else
+#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
     /* init GDT for real/protected mode switch */
     call gdt_init
-
     call main
+#else
+    jmpl $SEGMENT_CODE,$main
+#endif
 
     cli
 hang:
     hlt
     jmp hang
-#endif
