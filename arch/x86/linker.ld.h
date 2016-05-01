@@ -64,7 +64,7 @@ SECTIONS{
         boot1_rodata_load_end = . ;
     } > REGION_RODATA
 
-    .data boot1_rodata_load_end : AT(ADDR(.rodata) + SIZEOF(.rodata)) {
+    .data boot1_rodata_load_end : {
         boot1_data_load_start = . ;
 
         *(.data*)
@@ -72,7 +72,7 @@ SECTIONS{
         boot1_data_load_end = . ;
     } > REGION_DATA
 
-    .bss boot1_data_load_end : AT(ADDR(.data) + SIZEOF(.data)) {
+    .bss boot1_data_load_end : {
         boot1_bss_load_start = .;
 
         *(.bss*)
