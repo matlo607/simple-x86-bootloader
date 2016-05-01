@@ -6,6 +6,7 @@
 #ifdef DEBUG
     //#define DEBUG_SHELL
     //#define DEBUG_HEAP
+    #define  DEBUG_HD_DRIVER
 #endif
 
 #endif

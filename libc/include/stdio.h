@@ -105,4 +105,11 @@ extern void printf(const char* format, ...);
 #define debug_printf(fmt, ...) do { printf(fmt, ##__VA_ARGS__); } while (0)
 #endif
 
+typedef uint32_t FILE;
+
+extern FILE* fopen(const char* path, const char* mode);
+extern size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+extern size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream);
+extern int fclose(FILE* fp);
+
 #endif

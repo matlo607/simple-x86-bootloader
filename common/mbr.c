@@ -1,6 +1,10 @@
 #include <mbr.h>
 
+#include <dev.h>
+#include <block_dev.h>
+
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <arch/x86/cpu.h>
@@ -10,47 +14,41 @@
 
 #define keyboard_waitkeystroke()    getc()
 
-MBR_format_t* mbr_open(uint8_t drive_nb)
+MBR_format_t* mbr_get(const char* devname)
 {
+    dev_t* device = dev_lookuptable(devname);
+    if (!device) {
+        errno = ENODEV;
+        return NULL;
+    }
+
+    block_drv_op_t* op = block_dev_driver_lookuptable(device->major);
+    assert(op != NULL);
+
     MBR_format_t* mbr = malloc(sizeof(MBR_format_t));
     assert(mbr != NULL);
 
-    uint16_t reg_ds;
-    uint16_t offset;
-#ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
-    reg_ds = (0x000F0000 & (uint32_t)mbr) >> 4;
-    offset = (0x0000FFFF & (uint32_t)mbr);
-#else
-    reg_get_data_segment(&reg_ds);
-    offset = (uint16_t)(uint32_t)mbr;
-#endif
-
-    uint8_t nb_sectors_to_read = 1;
-    uint8_t nb_read_sectors = disk_read_sectors(drive_nb, reg_ds, offset, 0, 0, 1, nb_sectors_to_read);
-    if (nb_read_sectors != nb_sectors_to_read) {
-        printf("disk_read_sectors error : read %u sectors instead of %u\r\n", nb_read_sectors, nb_sectors_to_read);
+    if (op->block_drv_open(device->minor) == EXIT_FAILURE) {
+        errno = ENODEV;
+        free(mbr);
+        return NULL;
     }
+
+    keyboard_waitkeystroke();
+
+    // Read the first sector of the device
+    ssize_t read = op->block_drv_read(device->minor, 0, 1, mbr);
+    if (read < 0 || read < 512) {
+        free(mbr);
+        return NULL;
+    }
+
     printf("bootsector signature = %#04x\r\n", mbr->signature);
 
     return mbr;
 }
 
-MBR_format_t* mbr_read(uint8_t drive_nb)
-{
-    // TODO
-    (void) drive_nb;
-    return NULL;
-}
-
-size_t mbr_write(uint8_t drive_nb, MBR_format_t* mbr)
-{
-    // TODO
-    (void) drive_nb;
-    (void) mbr;
-    return 0;
-}
-
-void mbr_close(MBR_format_t* mbr)
+void mbr_destroy(MBR_format_t* mbr)
 {
     free(mbr);
 }

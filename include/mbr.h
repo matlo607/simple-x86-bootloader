@@ -41,10 +41,8 @@ typedef struct MBR_format_s {
     uint16_t signature;
 } __attribute__((packed)) MBR_format_t;
 
-MBR_format_t* mbr_open(uint8_t drive_nb);
-MBR_format_t* mbr_read(uint8_t drive_nb);
-size_t mbr_write(uint8_t drive_nb, MBR_format_t* mbr);
-void mbr_close(MBR_format_t* mbr);
+MBR_format_t* mbr_get(const char* devname);
+void mbr_destroy(MBR_format_t* mbr);
 
 void mbr_print_partition_table(const MBR_partition_entry_t* partition_table);
 

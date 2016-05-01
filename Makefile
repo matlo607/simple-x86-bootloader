@@ -71,6 +71,7 @@ $(ELF_STAGE0): $(OBJ_STAGE0)
 
 %.bin: %.elf
 	$(OBJCOPY) --remove-section=.comment --remove-section=.note -O binary $< $@
+	@echo `du -h $@`
 
 $(IMG): $(BIN)
 	$(TOOLS_DIR)/mbrpart boot0.bin

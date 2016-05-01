@@ -1,6 +1,7 @@
 #ifndef _CONFIG_MEM_H
 #define _CONFIG_MEM_H
 
+#define SECTOR_SIZE             512
 #define DEF_1KB                 1024
 #define DEF_1MB                 (1024 * DEF_1KB)
 #define SEGMENT_SIZE_16bit_MODE (64 * DEF_1KB)
@@ -27,7 +28,7 @@
 
 /* Stage 1's location on disk */
 #define BOOT1_HEAD          0
-#define BOOT1_NB_SECTORS    40     // 20kB
+#define BOOT1_NB_SECTORS    50     // 25kB
 
 /* Data segments */
 #define BOOT0_DATA_SEGMENT        0x0000
@@ -48,6 +49,8 @@
 #define SEGMENT_DATA_LENGTH  SEGMENT_SIZE_16bit_MODE
 
 #define STACK_BASE_OFFSET    0x9F000
+
+#define SEGMENT_EXTRA_DATA_RM 0x3000
 
 #else // REAL MODE
 

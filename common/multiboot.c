@@ -27,7 +27,7 @@ void multiboot_fill_header(void)
         multiboot_header.part2 = MULTIBOOT_INFO_UNUSED_PARTITION;
         multiboot_header.part3 = MULTIBOOT_INFO_UNUSED_PARTITION;
 
-        MBR_format_t* mbr = mbr_open(boot_drive_nb);
+        MBR_format_t* mbr = mbr_get("hda");
         if (mbr != NULL) {
 
             for (uint8_t i=0; i<4; ++i) {
@@ -38,7 +38,7 @@ void multiboot_fill_header(void)
                 }
             }
             mbr_print_partition_table((const MBR_partition_entry_t*)&(mbr->partition_table));
-            mbr_close(mbr);
+            mbr_destroy(mbr);
 
         } else {
             printf("MBR: error reading the boot sector\r\n");

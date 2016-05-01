@@ -52,14 +52,6 @@ void main(void)
 
 #endif
 
-    puts("Reset disk controller: ");
-    if (disk_reset(boot_drive_nb)) {
-        puts("succeeded\r\n");
-    } else {
-        puts("failed\r\n");
-        goto fatal_failure;
-    }
-
     setup();
 
     printf("Welcome in bootloader %s release v%u.%u, stage1\r\n",
@@ -93,7 +85,6 @@ void main(void)
         shell_main();
     }
 
-fatal_failure:
     puts("Press any key to reboot");
     keyboard_waitkeystroke();
     reboot();
