@@ -95,6 +95,12 @@ drive_read_boot:
 
 #else
 
+a20gate_enable:
+    movb $0x1, %al
+    movb $0x24, %ah
+    int $0x15
+    jc fatal_error
+
 disable_interrupts:
     cli
 
