@@ -11,28 +11,55 @@ include $(SHELL_DIR)/make.config
 include $(COMMON_DIR)/make.config
 
 
-IMG=bootloader.img
-
-ELF_STAGE0=boot0.elf
-ELF_STAGE1=bootloader.elf
+IMG=harddisk.img
+STAGE0=boot0
+STAGE1=bootloader
+KMULTIBOOT=kmultiboot
 
 OBJ_STAGE0=$(BOOT0_SRC_NASM:.asm=.o)
 OBJ_STAGE0+=$(BOOT0_SRC_GAS:.S=.o)
 #$(info $$OBJ_STAGE0 = [${OBJ_STAGE0}])
 
+ifdef BOOTLOADER_MINIMAL
+OBJ_STAGE1=$(COMMON_DIR)/main.o
+OBJ_STAGE1+=$(COMMON_DIR)/sys/panic.o
+ifdef FLAG_PROTECTED_MODE
+OBJ_STAGE1+=$(ARCH_DIR)/lib/int32.o
+else
+OBJ_STAGE1+=$(ARCH_DIR)/lib/bioscall.o
+endif
+OBJ_STAGE1+=$(ARCH_DIR)/lib/system.o
+OBJ_STAGE1+=$(ARCH_DIR)/lib/regs.o
+OBJ_STAGE1+=$(ARCH_DIR)/lib/tty.o
+OBJ_STAGE1+=$(ARCH_DIR)/lib/gdt.o
+OBJ_STAGE1+=$(LIBC_DIR)/assert/assert.o
+OBJ_STAGE1+=$(LIBC_DIR)/stdio/basic_out.o
+OBJ_STAGE1+=$(LIBC_DIR)/stdio/printf.o
+OBJ_STAGE1+=$(LIBC_DIR)/string/mem_operations.o
+OBJ_STAGE1+=$(LIBC_DIR)/string/str_operations.o
+OBJ_STAGE1+=$(LIBC_DIR)/string/nb_to_str.o
+else
 OBJ_STAGE1=$(ARCH_SRC_WITHOUT_BOOTSTRAP_NASM:.asm=.o)
 OBJ_STAGE1+=$(ARCH_SRC_WITHOUT_BOOTSTRAP_GAS:.S=.o)
 OBJ_STAGE1+=$(ARCH_SRC_WITHOUT_BOOTSTRAP_C:.c=.o)
 OBJ_STAGE1+=$(LIBC_SRC:.c=.o)
 OBJ_STAGE1+=$(SHELL_SRC:.c=.o)
 OBJ_STAGE1+=$(COMMON_SRC:.c=.o)
+endif
 
 #$(info $$OBJ_STAGE1 = [${OBJ_STAGE1}])
 
-ELF= $(ELF_STAGE0) $(ELF_STAGE1)
-BIN= $(ELF:.elf=.bin)
+ELF_STAGE0=$(STAGE0).elf
+ELF_STAGE1=$(STAGE1).elf
+ELF_KMULTIBOOT=$(KMULTIBOOT).elf
+BIN_STAGE0=$(STAGE0).bin
+BIN_STAGE1=$(STAGE1).bin
 
-all: dir-tools $(IMG)
+ELF= $(ELF_STAGE0) $(ELF_STAGE1)
+BIN= $(BIN_STAGE0) $(BIN_STAGE1)
+#BIN= $(ELF:.elf=.bin)
+
+all: dir-tools $(ELF_KMULTIBOOT) $(BIN)
 
 dir-arch:
 	$(MAKE) -C $(ARCH_DIR)
@@ -57,6 +84,9 @@ $(ELF_STAGE1): $(OBJ_STAGE1)
 $(ELF_STAGE0): $(OBJ_STAGE0)
 	$(LD) $(LDFLAGS) -T$(STAGE0_LD_SCRIPT) -o $@ $^
 
+$(ELF_KMULTIBOOT):
+	$(MAKE) -C $(KMULTIBOOT_DIR)
+
 %.o: %.asm
 	$(NASM) $(NASMFLAGS) -o $@ -l $*.lst $<
 
@@ -73,16 +103,18 @@ $(ELF_STAGE0): $(OBJ_STAGE0)
 	$(OBJCOPY) --remove-section=.comment --remove-section=.note -O binary $< $@
 	@echo `du -h $@`
 
-$(IMG): $(BIN)
-	$(TOOLS_DIR)/mbrpart boot0.bin
-	cat $^ /dev/zero | dd of=$@ bs=512 count=2880
+$(IMG): all
+	sudo $(TOOLS_DIR)/partitioning.sh /dev/loop0 -o $@ $(BIN_STAGE0) $(BIN_STAGE1)
+	sudo $(TOOLS_DIR)/formatting.sh /dev/loop0 $@
+	sudo $(TOOLS_DIR)/fcopytofs.sh /dev/loop0 $@ $(KMULTIBOOT_ROOT_FS_DIR)
+	sudo chown matt:matt $@
 
 
 ##############
 ## CLEAN UP ##
 ##############
 
-clean: clean-arch clean-libc clean-shell clean-common clean-tools
+clean: clean-arch clean-libc clean-shell clean-common clean-tools clean-kmultiboot
 
 clean-arch:
 	-$(MAKE) -C $(ARCH_DIR) clean
@@ -99,6 +131,9 @@ clean-common:
 clean-tools:
 	-$(MAKE) -C $(TOOLS_DIR) mrproper
 
+clean-kmultiboot:
+	-$(MAKE) -C $(KMULTIBOOT_DIR) mrproper
+
 mrproper: clean
 	-find . -iname "*.img" -delete
 	-find . -iname "*.bin" -delete
@@ -106,8 +141,8 @@ mrproper: clean
 
 
 # Inspection tools
-disassemble-bin: $(BINARY)
-	$(OBJDUMP) -D -b binary $(ARCH_OBJDUMPFLAGS) $< | less
+disassemble-bin:
+	$(OBJDUMP) -D -b binary $(ARCH_OBJDUMPFLAGS) $(IMG) | less
 
 disassemble-elf-stage0: $(ELF_STAGE0)
 	$(OBJDUMP) -D -mi386 -Maddr16,data16 $< | less
@@ -115,8 +150,8 @@ disassemble-elf-stage0: $(ELF_STAGE0)
 disassemble-elf-stage1: $(ELF_STAGE1)
 	$(OBJDUMP) -D $(ARCH_OBJDUMPFLAGS) $< | less
 
-hexdump: $(BINARY)
-	xxd -c 1 $< | less
+hexdump:
+	xxd -c 1 $(IMG) | less
 
 # Simulation
 run-qemu: $(IMG)
@@ -131,4 +166,3 @@ run-gdb:
 		-ex 'set architecture i386' \
 		-ex 'break *0x7c00' \
 		-ex 'continue'
-

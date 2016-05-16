@@ -72,6 +72,10 @@ void mbr_print_partition_table(const MBR_partition_entry_t* partition_table)
                 type_str = "FAT12";
                 break;
 
+            case MBR_PARTITION_SYSTEMID_FAT16:
+                type_str = "FAT16";
+                break;
+
             case MBR_PARTITION_SYSTEMID_MINIX14A:
                 type_str = "Minix 1.4a";
                 break;

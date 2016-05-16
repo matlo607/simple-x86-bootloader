@@ -1,4 +1,5 @@
 #include "arch/x86/gdt.h"
+#include <arch/x86/config_mem.h>
 
 #include <string.h>
 #include <arch/x86/cpu.h>
@@ -88,7 +89,7 @@ void gdt_init(void)
     cntxt_p_mode_32bit.regs.FS = GDT32_INDEX_DATA_SEG * sizeof(gdt_descriptor_t);
     cntxt_p_mode_32bit.regs.GS = GDT32_INDEX_DATA_SEG * sizeof(gdt_descriptor_t);
     cntxt_p_mode_32bit.regs.SS = GDT32_INDEX_DATA_SEG * sizeof(gdt_descriptor_t);
-    cntxt_p_mode_32bit.regs.SP._eR = 0x9F000;
+    cntxt_p_mode_32bit.regs.SP._eR = STACK_BASE_OFFSET;
 
     /*
      * 16-bit context
