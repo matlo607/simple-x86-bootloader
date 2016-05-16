@@ -2,29 +2,22 @@
 
 #include <arch/x86/bios.h>
 #include <sys/vga.h>
+#include <string.h>
 
 size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
 
+static void clrcurline(void);
+static void scrollifneeded(void);
+
 void tty_initialize(void)
 {
 #ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
 
 #ifdef PM_DRIVERS
-	terminal_row = 0;
-	terminal_column = 0;
-	terminal_color = make_color(COLOR_LIGHT_GREEN, COLOR_BLACK);
-	terminal_buffer = VGA_MEMORY;
-	for ( size_t y = 0; y < VGA_HEIGHT; y++ )
-	{
-		for ( size_t x = 0; x < VGA_WIDTH; x++ )
-		{
-			const size_t index = y * VGA_WIDTH + x;
-			terminal_buffer[index] = make_vgaentry(' ', terminal_color);
-		}
-	}
+    tty_clscr();
 #endif
 
 #endif
@@ -50,25 +43,22 @@ void tty_put_char(char c)
         terminal_column = 0;
 
     } else if (c == '\n') {
-        if ( ++terminal_row == VGA_HEIGHT ) {
-            terminal_row = 0;
-        }
+        terminal_row++;
+        scrollifneeded();
 
     } else if (c == '\t') {
-        tty_put_char(' ');
-        tty_put_char(' ');
-        tty_put_char(' ');
-        tty_put_char(' ');
+        size_t shifting = ((terminal_column + 4) & ~(4 - 1)) - terminal_column;
+        for (size_t i = 0; i < shifting; ++i) {
+            tty_put_char(' ');
+        }
 
     } else {
         tty_put_entry_at(c, terminal_color, terminal_column, terminal_row);
 
         if ( ++terminal_column == VGA_WIDTH ) {
             terminal_column = 0;
-            if ( ++terminal_row == VGA_HEIGHT )
-            {
-                terminal_row = 0;
-            }
+            terminal_row++;
+            scrollifneeded();
         }
     }
 #else
@@ -92,4 +82,38 @@ void tty_put_char(char c)
 
     bioscall(0x10, &regs_in, &regs_out);
 #endif
+}
+
+void tty_clscr(void)
+{
+    terminal_row = 0;
+    terminal_column = 0;
+    terminal_color = make_color(COLOR_LIGHT_GREEN, COLOR_BLACK);
+    terminal_buffer = VGA_MEMORY;
+    for ( size_t y = 0; y < VGA_HEIGHT; y++ )
+    {
+        for ( size_t x = 0; x < VGA_WIDTH; x++ )
+        {
+            const size_t index = y * VGA_WIDTH + x;
+            terminal_buffer[index] = make_vgaentry(' ', terminal_color);
+        }
+    }
+}
+
+void scrollifneeded(void)
+{
+    if ( terminal_row == VGA_HEIGHT ) {
+        /* scroll down */
+        memcpy(terminal_buffer, terminal_buffer + VGA_WIDTH, (VGA_WIDTH * (VGA_HEIGHT-1)) * sizeof(uint16_t));
+
+        terminal_row--;
+    }
+    clrcurline();
+}
+
+void clrcurline(void)
+{
+    for (size_t i = 0; i < VGA_WIDTH; ++i) {
+        tty_put_entry_at(' ', terminal_color, i, terminal_row);
+    }
 }
