@@ -77,12 +77,11 @@ char* strcpy(char* dest, const char* src)
 
     char c;
 
-    do {
-        c = *src;
+    while ( (c = *src) != '\0' ) {
         *dest = c;
         ++dest;
         ++src;
-    } while (c != '\0');
+    }
 
     return dest;
 }
@@ -96,9 +95,45 @@ char* strncpy(char *dest, const char *src, size_t n)
     for (; i < n && src[i] != '\0'; ++i) {
         dest[i] = src[i];
     }
+
     dest[i] = '\0';
 
+    return &dest[i];
+}
+
+char* strcpydelim(char *dest, const char* src, char delim)
+{
+    assert(dest != NULL);
+    assert(src != NULL);
+
+    char c;
+    while ( ( (c = *src) != delim ) && ( c != '\0') ) {
+        *dest = c;
+        ++dest;
+        ++src;
+    }
+
+    *dest = '\0';
+
     return dest;
+}
+
+char* strncpydelim(char *dest, const char* src, size_t n, char delim)
+{
+    assert(dest != NULL);
+    assert(src != NULL);
+
+    size_t i = 0;
+    for (; ( i < n )
+            && ( src[i] != delim )
+            && (src[i] != '\0');
+            ++i) {
+        dest[i] = src[i];
+    }
+
+    dest[i] = '\0';
+
+    return &dest[i];
 }
 
 void strnrev(char* str, size_t n)

@@ -64,7 +64,7 @@ extern ssize_t strncmp(const char* s1, const char* s2, size_t n);
  * \brief Copy a string into another (until '\0' is found in src).
  * \param[inout] dest : destination string buffer
  * \param[in]    src  : original string
- * \return pointer on the destination string
+ * \return pointer on the last written character the destination string
  *
  * */
 extern char* strcpy(char* dest, const char* src);
@@ -73,11 +73,32 @@ extern char* strcpy(char* dest, const char* src);
  * \brief Copy a string into another (at most n characters if '\0' is not reached before).
  * \param[inout] dest : destination string buffer
  * \param[in]    src  : original string
- * \param[in]    n    : number of bytes to copy
- * \return pointer on the destination string
+ * \param[in]    n    : maximum number of bytes to copy
+ * \return pointer on the last written character the destination string
  *
  * */
 extern char* strncpy(char *dest, const char *src, size_t n);
+
+/*
+ * \brief Copy a string into another (until '\0' or the delimiter is found in src).
+ * \param[inout] dest  : destination string buffer
+ * \param[in]    src   : original string
+ * \param[in]    delim : delimiter
+ * \return pointer on the last written character in the destination string
+ *
+ * */
+extern char* strcpydelim(char *dest, const char* src, char delim);
+
+/*
+ * \brief Copy a string into another (at most n characters if '\0' is not reached before).
+ * \param[inout] dest  : destination string buffer
+ * \param[in]    src   : original string
+ * \param[in]    n     : maximum number of bytes to copy
+ * \param[in]    delim : delimiter
+ * \return pointer on the last written character the destination string
+ *
+ * */
+extern char* strncpydelim(char *dest, const char* src, size_t n, char delim);
 
 /*
  * \brief Reverse the bytes in a string.
@@ -104,5 +125,14 @@ extern void memset(void* mem, uint8_t c, size_t n);
  *
  * */
 extern void memcpy(void *dest, const void *src, size_t n);
+
+/*
+ * \brief Copy n bytes from memory area src to memory area dest but in the reverse order that memcpy() would perform it.
+ * \param[inout] dest : destination buffer
+ * \param[in]    src  : source buffer
+ * \param[in]    n    : number of bytes to copy
+ *
+ * */
+extern void memcpyrev(void* dest, const void *src, size_t n);
 
 #endif
