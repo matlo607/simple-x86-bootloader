@@ -80,6 +80,8 @@ SECTIONS{
         boot1_bss_load_end = .;
     } > REGION_BSS
 
+    /DISCARD/ : { *(.eh_frame) }
+
     /* global size of the previous data sections */
     data_sections_size = ADDR(.bss) + SIZEOF(.bss) - ADDR(.rodata);
 

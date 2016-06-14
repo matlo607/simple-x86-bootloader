@@ -79,10 +79,10 @@ dir-tools:
 $(ELF_STAGE1): $(OBJ_STAGE1)
 	$(MAKE) -C $(ARCH_DIR) bootstrap.o
 	$(MAKE) -C $(ARCH_DIR) linker.ld
-	$(LD) $(LDFLAGS) -T$(STAGE1_LD_SCRIPT) -o $@ $^
+	$(CC) -T$(STAGE1_LD_SCRIPT) -o $@ $^ $(LDFLAGS)
 
 $(ELF_STAGE0): $(OBJ_STAGE0)
-	$(LD) $(LDFLAGS) -T$(STAGE0_LD_SCRIPT) -o $@ $^
+	$(CC) -T$(STAGE0_LD_SCRIPT) -o $@ $^ $(LDFLAGS)
 
 $(ELF_KMULTIBOOT):
 	$(MAKE) -C $(KMULTIBOOT_DIR)
