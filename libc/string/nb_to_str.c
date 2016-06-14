@@ -1,12 +1,12 @@
 #include <string.h>
 #include <assert.h>
 
-void uinttostring(uint32_t nb, char* str, uint8_t base)
+void uinttostring(uint64_t nb, char* str, uint8_t base)
 {
     assert(str != NULL);
 
-    uint32_t quotient;
-    uint32_t remaining;
+    uint64_t quotient;
+    uint64_t remaining;
     uint8_t nbdigits = 0;
 
     do {
@@ -27,7 +27,7 @@ void uinttostring(uint32_t nb, char* str, uint8_t base)
     str[nbdigits] = '\0';
 }
 
-void inttostring(int32_t nb, char* str, uint8_t base)
+void inttostring(int64_t nb, char* str, uint8_t base)
 {
     assert(str != NULL);
 

@@ -6,20 +6,20 @@
 
 /*
  * \brief Convert an unsigned integer into string.
- * \param[in]    nb  : number to convert (0 < nb < 65535)
+ * \param[in]    nb  : number to convert
  * \param[inout] str : string buffer (terminated by '\0')
  *
  * */
-extern void uinttostring(uint32_t nb, char* str, uint8_t base);
+extern void uinttostring(uint64_t nb, char* str, uint8_t base);
 
 /*
  * \brief Convert a signed integer into string.
- * \param[in]    nb   : number to convert (-32768 < nb < 32767)
+ * \param[in]    nb   : number to convert
  * \param[inout] str  : string buffer (terminated by '\0')
  * \param[out]   base : base in which to display the number
  *
  * */
-extern void inttostring(int32_t nb, char* str, uint8_t base);
+extern void inttostring(int64_t nb, char* str, uint8_t base);
 
 /*
  * \brief Compute the length of a string.

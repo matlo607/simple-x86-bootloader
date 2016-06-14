@@ -4,6 +4,7 @@
 #include "stddef.h"
 #include "stdint.h"
 #include "stdbool.h"
+#include <stdarg.h>
 
 /*
  * \brief Get a character from keyboard.
@@ -96,6 +97,18 @@ extern void putsdelim(const char* str, char c);
  * */
 extern void printf(const char* format, ...);
 
+/*
+ * \brief Print a string into another string according to the pattern specified in the format.
+ * \param[inout] str   : destination string
+ * \param[in] format   : string containing format options
+ * \param[in] args ... : data to print into the string according to the format options
+ *
+ * */
+extern void sprintf(char* str, const char* format, ...);
+
+
+extern void vprintf(const char* format, va_list ap);
+extern void vsprintf(char* str, const char* format, va_list ap);
 
 #ifdef DEBUG
 /*

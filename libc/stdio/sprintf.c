@@ -4,17 +4,17 @@
 #include <sys/system.h>
 
 
-void printf(const char* format, ...)
+void sprintf(char* str, const char* format, ...)
 {
     va_list args_list;
     va_start(args_list, format);
 
-    vprintf(format, args_list);
+    vsprintf(str, format, args_list);
 
     va_end(args_list);
 }
 
-void vprintf(const char* format, va_list ap)
+void vsprintf(char* str, const char* format, va_list ap)
 {
     const char* mark;
     const char* str_start = format;
@@ -33,7 +33,7 @@ void vprintf(const char* format, va_list ap)
         flag_showbase = false;
         flag_zerofill = false;
         width = -1; // -1 means "just displays a number according to
-                    // its most significant bit different of zero"
+        // its most significant bit different of zero"
 
         var_format = *(++mark);
 
@@ -130,15 +130,15 @@ void vprintf(const char* format, va_list ap)
         }
 
         // print the string until the delimiter
-        putsdelim(str_start, '%');
+        str = strcpydelim(str, str_start, '%');
         str_start = ++mark;
 
         // print base (only for 'p','x' and 'b')
         if (flag_showbase) {
             if (var_format == 'p' || var_format == 'x') {
-                puts("0x");
+                str = strcpy(str, "0x");
             } else if (var_format == 'b') {
-                puts("1'b");
+                str = strcpy(str, "1'b");
             }
         }
 
@@ -146,7 +146,8 @@ void vprintf(const char* format, va_list ap)
         switch (var_format) {
             case 'c':
                 {
-                    putc(c);
+                    *(str++) = c;
+                    *str = '\0';
 
                     break;
                 }
@@ -156,7 +157,7 @@ void vprintf(const char* format, va_list ap)
                     if (p_str == NULL) {
                         p_str = "null";
                     }
-                    puts(p_str);
+                    str = strcpy(str, p_str);
 
                     break;
                 }
@@ -172,23 +173,25 @@ void vprintf(const char* format, va_list ap)
                         size_t nchars = strlen(buf_nbtostring);
                         size_t nbzeros = width - nchars;
                         for (size_t i=0; i<nbzeros; ++i) {
-                            putc('0');
+                            *(str++) = '0';
                         }
+                        *str = '\0';
                     }
 
-                    puts(buf_nbtostring);
+                    str = strcpy(str, buf_nbtostring);
 
                     break;
                 }
 
             case '%':
                 {
-                    putc('%');
+                    *(str++) = '%';
+                    *str = '\0';
 
                     break;
                 }
         }
     }
 
-    puts(str_start);
+    str = strcpy(str, str_start);
 }
