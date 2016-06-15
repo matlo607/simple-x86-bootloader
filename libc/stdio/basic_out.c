@@ -4,7 +4,7 @@
 
 void putc(char c)
 {
-    tty_put_char(c);
+    tty_putchar(c);
 }
 
 void putsndelim(const char* str, size_t n, char c)

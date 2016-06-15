@@ -2,42 +2,32 @@
 #define _SYS_VGA_H
 
 #include <stdint.h>
+#include <stddef.h>
+#include <sys/colors.h>
 
-enum vga_color
-{
-	COLOR_BLACK = 0,
-	COLOR_BLUE = 1,
-	COLOR_GREEN = 2,
-	COLOR_CYAN = 3,
-	COLOR_RED = 4,
-	COLOR_MAGENTA = 5,
-	COLOR_BROWN = 6,
-	COLOR_LIGHT_GREY = 7,
-	COLOR_DARK_GREY = 8,
-	COLOR_LIGHT_BLUE = 9,
-	COLOR_LIGHT_GREEN = 10,
-	COLOR_LIGHT_CYAN = 11,
-	COLOR_LIGHT_RED = 12,
-	COLOR_LIGHT_MAGENTA = 13,
-	COLOR_LIGHT_BROWN = 14,
-	COLOR_WHITE = 15,
-};
+#define CURSOR_HIDE_X -1
+#define CURSOR_HIDE_Y -1
 
-static inline uint8_t make_color(enum vga_color fg, enum vga_color bg)
-{
-	return fg | bg << 4;
-}
+typedef struct {
+    uint16_t* const bufaddr;
+    const size_t width;
+    const size_t height;
+    uint8_t color;
+} vga_t;
 
-static inline uint16_t make_vgaentry(char c, uint8_t color)
-{
-	uint16_t c16 = c;
-	uint16_t color16 = color;
-	return c16 | color16 << 8;
-}
+extern vga_t vga;
 
-static const size_t VGA_WIDTH = 80;
-static const size_t VGA_HEIGHT = 25;
+extern void vga_setcolor(enum vga_color fg, enum vga_color bg);
 
-static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
+extern void vga_putcharcolor(char c, size_t x, size_t y, enum vga_color fg, enum vga_color bg);
+extern void vga_putchar(char c, size_t x, size_t y);
+
+extern void vga_fillline(size_t y, const uint16_t* with);
+extern void vga_clearscreen(void);
+
+extern void vga_scrollup(size_t n, const uint16_t* fillwith);
+extern void vga_scrolldown(size_t n, const uint16_t* fillwith);
+
+extern void vga_mvcursor(size_t x, size_t y);
 
 #endif
