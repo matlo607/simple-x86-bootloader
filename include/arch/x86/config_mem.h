@@ -27,8 +27,17 @@
 #endif
 
 /* Stage 1's location on disk */
-#define BOOT1_HEAD          0
-#define BOOT1_NB_SECTORS    50     // 25kB
+#define BOOT1_NB_SECTORS    120 // 60kB
+
+#define BOOT1P1_HEAD          0
+#define BOOT1P1_START_SECTOR  2
+#define BOOT1P1_NB_SECTORS    62 // 31kB
+#define BOOT1P1_START_ADDR_RM BOOT1_START_ADDR_RM
+
+#define BOOT1P2_HEAD          1
+#define BOOT1P2_START_SECTOR  1
+#define BOOT1P2_NB_SECTORS    58 // 29kB
+#define BOOT1P2_START_ADDR_RM (BOOT1P1_START_ADDR_RM + (BOOT1P1_NB_SECTORS * SECTOR_SIZE))
 
 /* Data segments */
 #define BOOT0_DATA_SEGMENT        0x0000

@@ -81,13 +81,22 @@ drive_reset:
     jc fatal_error
 
 drive_read_boot:
-    movb $BOOT1_HEAD, %dh
-    movb $BOOT1_NB_SECTORS, %al
-    movw $BOOT1_START_ADDR_RM, %bx
-    movw $0x0002, %cx
+    movb $BOOT1P1_HEAD, %dh
+    movb $BOOT1P1_NB_SECTORS, %al
+    movw $BOOT1P1_START_ADDR_RM, %bx
+    movw $BOOT1P1_START_SECTOR, %cx
     movb $0x02, %ah
     int $0x13
     jc fatal_error
+
+    movb $BOOT1P2_HEAD, %dh
+    movb $BOOT1P2_NB_SECTORS, %al
+    movw $BOOT1P2_START_ADDR_RM, %bx
+    movw $BOOT1P2_START_SECTOR, %cx
+    movb $0x02, %ah
+    int $0x13
+    jc fatal_error
+
 
 #ifndef BOOTLOADER_PROTECTED_MODE_ENABLED
 
