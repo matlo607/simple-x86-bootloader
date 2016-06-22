@@ -74,7 +74,7 @@ void vsprintf(char* str, const char* format, va_list ap)
         switch (var_format) {
             case 'c':
                 {
-                    c = va_arg(ap, char);
+                    c = va_arg(ap, uint32_t);
                     break;
                 }
 
