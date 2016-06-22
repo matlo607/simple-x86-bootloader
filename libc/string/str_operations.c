@@ -56,9 +56,11 @@ ssize_t strncmp(const char* s1, const char* s2, size_t n)
     assert(s2 != NULL);
 
     size_t i = 0;
-    for (; i < n && (*s1 != '\0' && *s2 != '\0' && *s1 == *s2); i++) {
-        s1++;
-        s2++;
+    while ( (i < n) && (*s1 != '\0' && *s2 != '\0' && *s1 == *s2) ) {
+        if (++i < n) {
+            s1++;
+            s2++;
+        }
     }
 
     if (*s1 == *s2) {
