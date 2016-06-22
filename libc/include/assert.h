@@ -17,9 +17,15 @@ void __assert_fail(const char* _assertion,
         __assert_fail(#assertion, __FILE__, __LINE__, __func__); \
     }
 
+#define assert_if(cond, assertion) \
+    if ((cond) && !(assertion)) {\
+        __assert_fail(#assertion, __FILE__, __LINE__, __func__); \
+    }
+
 #else
 
 #define assert(assertion) {}
+#define assert_if(cond, assertion) {}
 
 #endif
 
