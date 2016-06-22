@@ -6,8 +6,9 @@
 
 /*
  * \brief Convert an unsigned integer into string.
- * \param[in]    nb  : number to convert
- * \param[inout] str : string buffer (terminated by '\0')
+ * \param[in]    nb   : number to convert
+ * \param[inout] str  : string buffer (terminated by '\0')
+ * \param[in]    base : base in which to display the number
  *
  * */
 extern void uinttostring(uint64_t nb, char* str, uint8_t base);
@@ -16,10 +17,32 @@ extern void uinttostring(uint64_t nb, char* str, uint8_t base);
  * \brief Convert a signed integer into string.
  * \param[in]    nb   : number to convert
  * \param[inout] str  : string buffer (terminated by '\0')
- * \param[out]   base : base in which to display the number
+ * \param[in]    base : base in which to display the number
  *
  * */
 extern void inttostring(int64_t nb, char* str, uint8_t base);
+
+/*
+ * \brief Convert a string to an unsigned integer.
+ * \param[in]    str    : string to convert
+ * \param[inout] endptr : if endptr is not NULL, strtoull() stores the address of the first
+ *                        invalid character.
+ * \param[in]    base   : base in which to display the number
+ * \return result of the conversion
+ *
+ * */
+extern uint64_t strtoull(const char *str, char **endptr, uint8_t base);
+
+/*
+ * \brief Convert a string to a signed integer.
+ * \param[in]    str    : string to convert
+ * \param[inout] endptr : if endptr is not NULL, strtoll() stores the address of the first
+ *                        invalid character.
+ * \param[in]    base   : base in which to display the number
+ * \return result of the conversion
+ *
+ * */
+extern int64_t strtoll(const char *str, char **endptr, uint8_t base);
 
 /*
  * \brief Compute the length of a string.

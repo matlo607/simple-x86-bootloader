@@ -4,6 +4,7 @@
 void uinttostring(uint64_t nb, char* str, uint8_t base)
 {
     assert(str != NULL);
+    assert( 2 <= base && base <= 16 );
 
     uint64_t quotient;
     uint64_t remaining;
@@ -30,6 +31,7 @@ void uinttostring(uint64_t nb, char* str, uint8_t base)
 void inttostring(int64_t nb, char* str, uint8_t base)
 {
     assert(str != NULL);
+    assert( 2 <= base && base <= 16 );
 
     if (nb < 0) {
         str[0] = '-';
