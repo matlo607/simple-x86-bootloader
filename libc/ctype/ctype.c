@@ -1,6 +1,7 @@
 #include "ctype.h"
 
 #include <stdint.h>
+#include <assert.h>
 
 #define CT_UP   0x01    /* upper case */
 #define CT_LOW  0x02    /* lower case */
@@ -202,6 +203,25 @@ bool isxdigit(char c)
 bool isascii(int c)
 {
     return (c <= 0x7F);
+}
+
+bool isdigitinbase(char c, int base)
+{
+    assert( 2 <= base && base <= 16 );
+
+    if ( isdigit(c) ) {
+        if (base > 10) {
+            return true;
+        } else {
+            return (c - '0') < base;
+        }
+
+    } else if ( isxdigit(c) ) {
+        return (tolower(c) - 'a' + 10) < base;
+
+    } else {
+        return false;
+    }
 }
 
 char toascii(int c)

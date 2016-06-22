@@ -15,6 +15,7 @@ extern bool isspace(char c);
 extern bool isupper(char c);
 extern bool isxdigit(char c);
 extern bool isascii(int c);
+extern bool isdigitinbase(char c, int base);
 extern char toascii(int c);
 extern char tolower(char c);
 extern char toupper(char c);
