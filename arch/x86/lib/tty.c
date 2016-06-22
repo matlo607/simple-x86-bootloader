@@ -67,24 +67,63 @@ void tty_putchar(char c)
 #ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
 
 #ifdef PM_DRIVERS
-    if (c == '\r') {
-        this.column = 0;
-        vga_mvcursor(0, this.row);
+    switch(c) {
+        case '\r':
+            {
+                this.column = 0;
+                vga_mvcursor(0, this.row);
+                break;
+            }
 
-    } else if (c == '\n') {
-        this.row++;
-        scrollifneeded();
+        case '\n':
+            {
+                this.row++;
+                scrollifneeded();
+                break;
+            }
 
-    } else if (c == '\t') {
-        size_t shifting = ((this.column + 4) & ~(4 - 1)) - this.column;
-        for (size_t i = 0; i < shifting; ++i) {
-            tty_putchar(' ');
-        }
+        case '\t':
+            {
+                size_t shifting = ((this.column + 4) & ~(4 - 1)) - this.column;
+                for (size_t i = 0; i < shifting; ++i) {
+                    tty_putchar(' ');
+                }
+                break;
+            }
 
-    } else {
-        vga_putchar(c, this.column, this.row);
-        this.column++;
-        scrollifneeded();
+        case '\a': // bell
+            {
+                //TODO
+                break;
+            }
+
+        case '\b': // backspace
+            {
+                if (this.column == 0 && this.row != 0) {
+                    this.row--;
+                    this.column = vga.width;
+                } else {
+                    this.column--;
+                }
+                vga_putchar(' ', this.column, this.row);
+                vga_mvcursor(this.column, this.row);
+
+                break;
+            }
+
+        case 127: // DEL
+            {
+                //TODO
+                break;
+            }
+
+        default:
+            {
+                vga_putchar(c, this.column, this.row);
+                this.column++;
+                scrollifneeded();
+                break;
+            }
     }
 #else
     regs16_t regs;

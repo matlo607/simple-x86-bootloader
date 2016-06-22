@@ -1,5 +1,7 @@
 #include "sys/vga.h"
 
+#ifdef PM_DRIVERS
+
 #include <string.h>
 #include <assert.h>
 #include <arch/x86/ioport.h>
@@ -109,3 +111,5 @@ void vga_mvcursor(size_t x, size_t y)
     outb(VGA_CRTMICRO_INDEX_REG, CURSOR_LOCATION_LOW_BYTE);
     outb(VGA_CRTMICRO_DATA_REG, (uint8_t) cursor_linear_pos);
 }
+
+#endif

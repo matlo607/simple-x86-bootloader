@@ -1,6 +1,8 @@
 #ifndef _SYS_VGA_H
 #define _SYS_VGA_H
 
+#ifdef PM_DRIVERS
+
 #include <stdint.h>
 #include <stddef.h>
 #include <sys/colors.h>
@@ -29,5 +31,7 @@ extern void vga_scrollup(size_t n, const uint16_t* fillwith);
 extern void vga_scrolldown(size_t n, const uint16_t* fillwith);
 
 extern void vga_mvcursor(size_t x, size_t y);
+
+#endif
 
 #endif
