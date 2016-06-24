@@ -17,17 +17,27 @@ size_t getdelim(char* buf, size_t len, char delim, bool verbose)
     while (n < len) {
         char c = getc();
 
-        buf[n] = c;
-        ++n;
+        // increment the number of read characters if it is not a backspace
+        if (c != '\b') {
+            buf[n] = c;
+            ++n;
+        }
 
+        // if this is a delimiter, stop reading
         if (c == delim) {
             putc('\r');
             putc('\n');
             break;
         }
 
-        if (verbose) {
+        // display the character (backspace included)
+        if (verbose && n > 0) {
             putc(c);
+        }
+
+        // backspace: remove the previous char from buffer
+        if (c == '\b' && n > 0) {
+            --n;
         }
     }
 
