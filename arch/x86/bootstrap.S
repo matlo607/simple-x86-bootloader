@@ -88,8 +88,6 @@ _start:
 
     /* long jump to set correctly the %CS register */
 #ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
-    /* init GDT for real/protected mode switch */
-    call gdt_init
     call main
 #else
     jmpl $SEGMENT_CODE,$main

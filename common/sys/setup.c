@@ -1,12 +1,19 @@
 #include "sys/setup.h"
 
-#include <sys/heap.h>
 #include <sys/tty.h>
+#include <sys/hal.h>
 
-bool platform_startup(void)
+#include <version.h>
+#include <stdio.h>
+
+void platform_startup(void)
 {
     tty_initialize();
-    heap_init();
 
-    return true;
+    printf("Welcome in bootloader %s release v%u.%u, stage1\r\n",
+            BOOTLOADER_RELEASE_MODE,
+            BOOTLOADER_VERSION,
+            BOOTLOADER_REVISION);
+
+    hal_init();
 }

@@ -1,36 +1,48 @@
 #include "arch/x86/gdt.h"
 #include <arch/x86/config_mem.h>
 
+#include <debug.h>
 #include <string.h>
+#include <stdio.h>
 #include <arch/x86/cpu.h>
+#include <arch/x86/cpu_mode_switching.h>
 
-cpu_switch_mode_context_t cntxt_p_mode_16bit;
-cpu_switch_mode_context_t cntxt_p_mode_32bit;
+static gdt_descriptor_t GDT16[GDT16_NB_DESCRIPTORS];
+static gdt_descriptor_t GDT32[GDT32_NB_DESCRIPTORS];
 
-gdt_descriptor_t GDT16[GDT16_NB_DESCRIPTORS];
-gdt_descriptor_t GDT32[GDT32_NB_DESCRIPTORS];
+static void gdt_descriptor_set_base(gdt_descriptor_t* p_gdt_desc, uint32_t base);
+static void gdt_descriptor_set_limit(gdt_descriptor_t* p_gdt_desc, uint32_t limit);
 
-void gdt_descriptor_set_base(gdt_descriptor_t* p_gdt_desc, uint32_t base)
+static void i86_gdt16_init(void);
+static void i86_gdt32_init(void);
+
+void i86_gdt_init(void)
 {
-    p_gdt_desc->base_15_0 = (uint16_t)(base & 0x0000FFFF);
-    p_gdt_desc->base_23_16 = (uint8_t)((base >> 16) & 0x00FF);
-    p_gdt_desc->base_31_24 = (uint8_t)(base >> 24);
+    i86_gdt16_init();
+    i86_gdt32_init();
+
+    // load the 32-bit GDT's pointer
+    lgdt(&cntxt_p_mode_32bit.ptr_gdt);
+#ifdef DEBUG_GDT
+    debug_printf("GDT: rgdt=%#08x\r\n", &cntxt_p_mode_32bit.ptr_gdt);
+#endif
+
+    __asm__ __volatile__ ( "movw %[gdt_offset_data_descriptor], %%ax;" \
+                           "movw %%ax, %%ds;" \
+                           "movw %%ax, %%es;" \
+                           "movw %%ax, %%fs;" \
+                           "movw %%ax, %%gs;" \
+                           "movw %%ax, %%ss;" \
+                           "ljmp %[gdt_offset_code_descriptor], $_gdt_init_next;" \
+                           "_gdt_init_next:" \
+                           : \
+                           : [gdt_offset_data_descriptor] "i" (GDT32_INDEX_DATA_SEG * sizeof(gdt_descriptor_t)),
+                             [gdt_offset_code_descriptor] "i" (GDT32_INDEX_CODE_SEG * sizeof(gdt_descriptor_t))
+                           : "eax");
 }
 
-void gdt_descriptor_set_limit(gdt_descriptor_t* p_gdt_desc, uint32_t limit)
+static void i86_gdt32_init(void)
 {
-    p_gdt_desc->limit_15_0 = (uint16_t)(limit & 0x0000FFFF);
-    p_gdt_desc->limit_19_16 = (uint8_t)((limit >> 16) & 0x000F);
-}
-
-void gdt_init(void)
-{
-    /*
-     * 32-bit context
-     * */
-
-    // clear the structures
-    memset(&cntxt_p_mode_32bit, 0, sizeof(cpu_switch_mode_context_t));
     memset(&GDT32, 0, sizeof(gdt_descriptor_t) * GDT32_NB_DESCRIPTORS);
 
     // set correctly the segment descriptors
@@ -55,6 +67,9 @@ void gdt_init(void)
     // limit : the maximum (4GB)
     gdt_descriptor_set_base (&GDT32[GDT32_INDEX_CODE_SEG], 0x00000000);
     gdt_descriptor_set_limit(&GDT32[GDT32_INDEX_CODE_SEG], 0xFFFFF);
+#ifdef DEBUG_GDT
+    debug_printf("GDT: 32bit code segment: base=0x00000000, limit=0xFFFFF (4GB)\r\n");
+#endif
 
 
     // data segment descriptor - 32bit protected mode
@@ -77,11 +92,14 @@ void gdt_init(void)
     // limit : the maximum (4GB)
     gdt_descriptor_set_base(&GDT32[GDT32_INDEX_DATA_SEG], 0x00000000);
     gdt_descriptor_set_limit(&GDT32[GDT32_INDEX_DATA_SEG], 0xFFFFF);
-
+#ifdef DEBUG_GDT
+    debug_printf("GDT: 32bit data segment: base=0x00000000, limit=0xFFFFF (4GB)\r\n");
+#endif
 
     // set the registers to point on the good segment descriptors
     cntxt_p_mode_32bit.ptr_gdt.base = (uint32_t) &GDT32;
     cntxt_p_mode_32bit.ptr_gdt.limit = sizeof(gdt_descriptor_t) * GDT32_NB_DESCRIPTORS;
+
 
     cntxt_p_mode_32bit.regs.CS = GDT32_INDEX_CODE_SEG * sizeof(gdt_descriptor_t);
     cntxt_p_mode_32bit.regs.DS = GDT32_INDEX_DATA_SEG * sizeof(gdt_descriptor_t);
@@ -91,12 +109,19 @@ void gdt_init(void)
     cntxt_p_mode_32bit.regs.SS = GDT32_INDEX_DATA_SEG * sizeof(gdt_descriptor_t);
     cntxt_p_mode_32bit.regs.SP._eR = STACK_BASE_OFFSET;
 
-    /*
-     * 16-bit context
-     * */
+#ifdef DEBUG_GDT
+    debug_printf("GDT: %%cs=%#x, %%ds=%#x, %%es=%#x, %%fs=%#x, %%gs=%#x, %%ss=%#x\r\n",
+            cntxt_p_mode_32bit.regs.CS,
+            cntxt_p_mode_32bit.regs.DS,
+            cntxt_p_mode_32bit.regs.ES,
+            cntxt_p_mode_32bit.regs.FS,
+            cntxt_p_mode_32bit.regs.GS,
+            cntxt_p_mode_32bit.regs.SS);
+#endif
+}
 
-    // clear the structures
-    memset(&cntxt_p_mode_16bit, 0, sizeof(cpu_switch_mode_context_t));
+static void i86_gdt16_init(void)
+{
     memset(&GDT16, 0, sizeof(gdt_descriptor_t) * GDT16_NB_DESCRIPTORS);
 
     // set correctly the segment descriptors
@@ -143,10 +168,10 @@ void gdt_init(void)
     gdt_descriptor_set_base(&GDT16[GDT16_INDEX_DATA_SEG], 0x00000000);
     gdt_descriptor_set_limit(&GDT16[GDT16_INDEX_DATA_SEG], 0xFFFFF);
 
-
     // set the registers to point on the good segment descriptors
     cntxt_p_mode_16bit.ptr_gdt.base = (uint32_t) &GDT16;
     cntxt_p_mode_16bit.ptr_gdt.limit = sizeof(gdt_descriptor_t) * GDT16_NB_DESCRIPTORS;
+
 
     cntxt_p_mode_16bit.regs.CS = GDT16_INDEX_CODE_SEG * sizeof(gdt_descriptor_t);
     cntxt_p_mode_16bit.regs.DS = GDT16_INDEX_DATA_SEG * sizeof(gdt_descriptor_t);
@@ -155,21 +180,17 @@ void gdt_init(void)
     cntxt_p_mode_16bit.regs.GS = GDT16_INDEX_DATA_SEG * sizeof(gdt_descriptor_t);
     cntxt_p_mode_16bit.regs.SS = GDT16_INDEX_DATA_SEG * sizeof(gdt_descriptor_t);
     cntxt_p_mode_16bit.regs.SP._R = 0xFFFF;
+}
 
+static void gdt_descriptor_set_base(gdt_descriptor_t* p_gdt_desc, uint32_t base)
+{
+    p_gdt_desc->base_15_0 = (uint16_t)(base & 0x0000FFFF);
+    p_gdt_desc->base_23_16 = (uint8_t)((base >> 16) & 0x00FF);
+    p_gdt_desc->base_31_24 = (uint8_t)(base >> 24);
+}
 
-    // load the 32-bit GDT's pointer
-    GDTR_set(&cntxt_p_mode_32bit.ptr_gdt);
-
-    __asm__ __volatile__ ( "movw %[gdt_offset_data_descriptor], %%ax;" \
-                           "movw %%ax, %%ds;" \
-                           "movw %%ax, %%es;" \
-                           "movw %%ax, %%fs;" \
-                           "movw %%ax, %%gs;" \
-                           "movw %%ax, %%ss;" \
-                           "ljmp %[gdt_offset_code_descriptor], $_gdt_init_next;" \
-                           "_gdt_init_next:" \
-                           : \
-                           : [gdt_offset_data_descriptor] "i" (GDT32_INDEX_DATA_SEG * sizeof(gdt_descriptor_t)),
-                             [gdt_offset_code_descriptor] "i" (GDT32_INDEX_CODE_SEG * sizeof(gdt_descriptor_t))
-                           : "eax");
+static void gdt_descriptor_set_limit(gdt_descriptor_t* p_gdt_desc, uint32_t limit)
+{
+    p_gdt_desc->limit_15_0 = (uint16_t)(limit & 0x0000FFFF);
+    p_gdt_desc->limit_19_16 = (uint8_t)((limit >> 16) & 0x000F);
 }

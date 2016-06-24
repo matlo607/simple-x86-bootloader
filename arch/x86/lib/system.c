@@ -22,8 +22,11 @@ void reboot(void)
  **/
 void hang_forever(void)
 {
+    // disable interrupts
+    cli();
+
     while (1) {
-        interrupts_disable();
-        halt_cpu();
+        // set the cpu in stand-by
+        hlt();
     }
 }

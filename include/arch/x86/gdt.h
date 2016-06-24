@@ -47,7 +47,7 @@
 #define GDT_SEG_64BIT_MODE         1
 
 
-typedef struct gdt_descriptor_type_s {
+typedef struct {
     uint8_t accessed : 1; // 0: unused, 1: accessed/used
     union {
         struct {
@@ -64,7 +64,7 @@ typedef struct gdt_descriptor_type_s {
 } __attribute__ ((packed)) gdt_descriptor_type_t;
 
 /* GDT's segment descriptor */
-typedef struct gdt_descriptor_s {
+typedef struct {
 
     uint16_t limit_15_0;
 
@@ -137,22 +137,10 @@ uint8_t : 1;
 } __attribute__ ((packed)) gdt_descriptor_t;
 
 /* Registre GDTR */
-typedef struct gdtr_s {
+typedef struct {
         uint16_t limit;
         uint32_t base;
 } __attribute__ ((packed)) gdtr_t;
-
-/*
- * - GDTR's pseudo descriptor
- * - Registers
- * */
-typedef struct cpu_switch_mode_context_s {
-    gdtr_t     ptr_gdt;
-    x86_regs_t regs;
-} __attribute__ ((packed)) cpu_switch_mode_context_t;
-
-extern cpu_switch_mode_context_t cntxt_p_mode_16bit;
-extern cpu_switch_mode_context_t cntxt_p_mode_32bit;
 
 /*
  * Global descriptor table 32-bit
@@ -163,7 +151,6 @@ extern cpu_switch_mode_context_t cntxt_p_mode_32bit;
 #define GDT32_NB_DESCRIPTORS 3
 #define GDT32_INDEX_CODE_SEG 1
 #define GDT32_INDEX_DATA_SEG 2
-extern gdt_descriptor_t GDT32[GDT32_NB_DESCRIPTORS];
 
 /*
  * Global descriptor table 16-bit
@@ -174,11 +161,7 @@ extern gdt_descriptor_t GDT32[GDT32_NB_DESCRIPTORS];
 #define GDT16_NB_DESCRIPTORS 3
 #define GDT16_INDEX_CODE_SEG 1
 #define GDT16_INDEX_DATA_SEG 2
-extern gdt_descriptor_t GDT16[GDT16_NB_DESCRIPTORS];
 
-void gdt_descriptor_set_base(gdt_descriptor_t* p_gdt_desc, uint32_t base);
-void gdt_descriptor_set_limit(gdt_descriptor_t* p_gdt_desc, uint32_t limit);
-
-void gdt_init(void);
+void i86_gdt_init(void);
 
 #endif
