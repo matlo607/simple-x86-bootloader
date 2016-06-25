@@ -120,17 +120,22 @@ device_partition_size=`expr \( ${device_partition_sector_end} - ${device_partiti
 
 losetup -d ${loopback_device}
 
+mount_point="./mnt"
+mkdir -p ${mount_point}
+
 # mount the FAT partition and copy files
 ########################################
-echo "Mount partition ${device_partition} (begin=${device_partition_sector_start}, end=${device_partition_sector_end}), size=${device_partition_size} bytes"
 losetup ${loopback_device} ${disk_image}
-mount -t vfat ${device_partition} ./mnt 
+
+echo "Mount partition ${device_partition} (begin=${device_partition_sector_start}, end=${device_partition_sector_end}), size=${device_partition_size} bytes"
+mount -t vfat ${device_partition} ${mount_point}
 echo "Copy files to ${device_partition}"
-cp ${fs_root_path}/* ./mnt
-ls ./mnt
+cp ${fs_root_path}/* ${mount_point}
+ls ${mount_point}
 sync
-umount ./mnt
+umount ${mount_point}
 echo "Unmount partition ${device_partition}"
+
 losetup -d ${loopback_device}
 
 exit 0

@@ -96,6 +96,36 @@ fi
 #echo "disk type = $DISKTYPE"
 #echo "disk image = ${disk_image}"
 
+function format_FAT_partitions()
+{
+    FAT16_line=$(fdisk -c=nondos -u=sectors -C ${C} -H ${H} -S ${S} -b ${SECTORSIZE} -l ${loopback_device} | grep FAT16 | awk '{print $1,$3,$4}')
+
+    device_partition=$(echo ${FAT16_line} | awk '{print $1}')
+    device_partition_sector_start=$(echo ${FAT16_line} | awk '{print $2}')
+    device_partition_sector_end=$(echo ${FAT16_line} | awk '{print $3}')
+    device_partition_size=`expr \( ${device_partition_sector_end} - ${device_partition_sector_start} + 1 \) \* ${SECTORSIZE}`
+
+    # Format FAT partition
+    ######################
+    echo "Format to FAT16 partition ${device_partition} (begin=${device_partition_sector_start}, end=${device_partition_sector_end}), size=${device_partition_size} bytes"
+    mkdosfs -v -n DUMMYOS -F 16 ${device_partition}
+}
+
+function format_MinixV1_partitions()
+{
+    MINIXv1_line=$(fdisk -c=nondos -u=sectors -C ${C} -H ${H} -S ${S} -b ${SECTORSIZE} -l ${loopback_device} | grep "Old Minix" | awk '{print $1,$2,$3}')
+
+    device_partition=$(echo ${MINIXv1_line} | awk '{print $1}')
+    device_partition_sector_start=$(echo ${MINIXv1_line} | awk '{print $2}')
+    device_partition_sector_end=$(echo ${MINIXv1_line} | awk '{print $3}')
+    device_partition_size=`expr \( ${device_partition_sector_end} - ${device_partition_sector_start} + 1 \) \* ${SECTORSIZE}`
+
+    # Format Minix v1 partition
+    ######################
+    echo "Format to Minix v1 partition ${device_partition} (begin=${device_partition_sector_start}, end=${device_partition_sector_end}), size=${device_partition_size} bytes"
+    mkfs.minix -1 ${device_partition}
+}
+
 # get the FAT partition name and offset
 #######################################
 losetup ${loopback_device} ${disk_image}
@@ -104,22 +134,9 @@ if [ $? -ne 0 ]; then
     losetup ${loopback_device} ${disk_image}
 fi
 
-FAT16_line=$(fdisk -c=nondos -u=sectors -C ${C} -H ${H} -S ${S} -b ${SECTORSIZE} -l ${loopback_device} | grep FAT16 | awk '{print $1,$3,$4}')
+format_FAT_partitions
+format_MinixV1_partitions
 
-device_partition=$(echo ${FAT16_line} | awk '{print $1}')
-device_partition_sector_start=$(echo ${FAT16_line} | awk '{print $2}')
-device_partition_sector_end=$(echo ${FAT16_line} | awk '{print $3}')
-device_partition_size=`expr \( ${device_partition_sector_end} - ${device_partition_sector_start} + 1 \) \* ${SECTORSIZE}`
-
-losetup -d ${loopback_device}
-
-# mount the FAT partition and format it
-#######################################
-echo "Mount partition ${device_partition} (begin=${device_partition_sector_start}, end=${device_partition_sector_end}), size=${device_partition_size} bytes"
-#losetup --offset ${device_partition_sector_start} --sizelimit ${device_partition_size} ${loopback_device} ${disk_image}
-losetup ${loopback_device} ${disk_image}
-echo "Format partition ${device_partition} to FAT16"
-mkdosfs -v -F 16 ${device_partition}
 losetup -d ${loopback_device}
 
 exit 0
