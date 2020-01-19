@@ -7,8 +7,7 @@
     .section .bss
 
     .global boot_drive_nb
-boot_drive_nb:
-    .byte 1
+    .lcomm boot_drive_nb , 1
 
     .section .text
 
