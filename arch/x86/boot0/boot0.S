@@ -11,8 +11,7 @@ msg_please_reboot:
     .asciz "An error was encountered, please reboot"
 
     .section .bss
-boot_drv:
-    .byte 1
+    .lcomm boot_drv , 1
 
     .section .data
 #ifdef BOOTLOADER_PROTECTED_MODE_ENABLED
